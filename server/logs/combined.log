@@ -1,0 +1,2 @@
+{"level":"warn","message":"Failed login attempt: Account not found for invalid@test.com from IP: ::1","service":"dose-backend","timestamp":"2026-03-23 22:48:32"}
+{"level":"info","message":"::1 - - [23/Mar/2026:17:18:32 +0000] \"POST /api/login HTTP/1.1\" 400 46 \"-\" \"-\"","service":"dose-backend","timestamp":"2026-03-23 22:48:32"}
