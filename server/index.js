@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -107,7 +109,6 @@ const app = express();
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/doseDB";
-
 if (!process.env.JWT_SECRET) {
     console.error("FATAL ERROR: JWT_SECRET environment variable is missing.");
     process.exit(1);
@@ -196,8 +197,8 @@ app.post("/api/signup", signupLimiter, async (req, res) => {
         const verificationToken = crypto.randomBytes(32).toString("hex");
         const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
 
-        const user = new User({ 
-            email, 
+        const user = new User({
+            email,
             password: hashedPassword,
             verificationToken,
             verificationTokenExpires
