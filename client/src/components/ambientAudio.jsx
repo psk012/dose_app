@@ -1,17 +1,33 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 
 export const AUDIO_TRACKS = [
     { id: "none", name: "No Sound", url: "" },
-    // These now point to local files you must download into client/public/audio/
     { id: "rain", name: "Gentle Rain", url: "/audio/rain.mp3" },
     { id: "forest", name: "Deep Forest", url: "/audio/forest.mp3" },
     { id: "fireplace", name: "Fireplace", url: "/audio/fireplace.mp3" },
     { id: "white_noise", name: "White Noise", url: "/audio/white_noise.mp3" },
 ];
 
-function AmbientAudio({ isPlaying, trackId }) {
+const AmbientAudio = forwardRef(function AmbientAudio({ isPlaying, trackId }, ref) {
     const audioRef = useRef(null);
 
+    // Expose a method so the parent can trigger play from a user gesture (tap/click)
+    // This satisfies mobile browser autoplay policies
+    useImperativeHandle(ref, () => ({
+        userPlay() {
+            const audio = audioRef.current;
+            if (!audio || trackId === "none") return;
+            audio.load();
+            const p = audio.play();
+            if (p) p.catch(() => {});
+        },
+        userStop() {
+            const audio = audioRef.current;
+            if (audio) audio.pause();
+        }
+    }));
+
+    // Sync play/pause state with isPlaying prop
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -19,8 +35,8 @@ function AmbientAudio({ isPlaying, trackId }) {
         if (isPlaying && trackId !== "none") {
             const playPromise = audio.play();
             if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.log("Audio playback failed (browser autoplay block without interaction):", error);
+                playPromise.catch(() => {
+                    // Autoplay blocked — will be unlocked via userPlay() from a tap
                 });
             }
         } else {
@@ -28,16 +44,14 @@ function AmbientAudio({ isPlaying, trackId }) {
         }
     }, [isPlaying, trackId]);
 
-    // When the track changes, we need to handle loading and conditionally play again if needed
+    // Reload source when track changes mid-session
     useEffect(() => {
         const audio = audioRef.current;
         if (audio && trackId !== "none") {
-            audio.load(); // Reload the new source
+            audio.load();
             if (isPlaying) {
-                const playPromise = audio.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(e => console.log("Failed to play on track switch:", e));
-                }
+                const p = audio.play();
+                if (p) p.catch(() => {});
             }
         }
     }, [trackId]);
@@ -46,7 +60,7 @@ function AmbientAudio({ isPlaying, trackId }) {
 
     if (!track || track.id === "none") return null;
 
-    return <audio ref={audioRef} src={track.url} loop />;
-}
+    return <audio ref={audioRef} src={track.url} loop preload="auto" />;
+});
 
 export default AmbientAudio;

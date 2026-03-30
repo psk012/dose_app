@@ -113,6 +113,7 @@ function Focus() {
     const [showSettings, setShowSettings] = useState(false);
 
     const intervalRef = useRef(null);
+    const ambientRef = useRef(null);
 
     // Clean up on unmount
     useEffect(() => {
@@ -148,6 +149,8 @@ function Focus() {
         setTimeLeft(totalSeconds);
         setTotalTime(totalSeconds);
         setMode("working");
+        // Trigger audio from user gesture (tap) — required for mobile browsers
+        if (ambientRef.current) ambientRef.current.userPlay();
     }
 
     async function handleWorkComplete() {
@@ -174,6 +177,7 @@ function Focus() {
         setMode("idle");
         setTimeLeft(0);
         setTotalTime(0);
+        if (ambientRef.current) ambientRef.current.userStop();
     }
 
     // Progress calculation
@@ -258,7 +262,7 @@ function Focus() {
                 </div>
             )}
 
-            <AmbientAudio isPlaying={mode === "working"} trackId={audioTrackId} />
+            <AmbientAudio ref={ambientRef} isPlaying={mode === "working"} trackId={audioTrackId} />
 
             {/* Idle state */}
             {mode === "idle" && (
