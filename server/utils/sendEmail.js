@@ -26,7 +26,7 @@ async function sendEmail(to, subject, html) {
     } catch (error) {
         logger.error("Failed to send email", { error });
         console.error("Failed to send email:", error);
-        throw new Error("Failed to send email visually. Check server logs or SMTP setup.");
+        throw new Error(`SMTP Error: ${error.message}`);
     }
 }
 

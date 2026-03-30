@@ -59,7 +59,7 @@ exports.sendOtp = async (req, res) => {
         res.status(200).json({ message: "OTP sent successfully" });
     } catch (err) {
         logger.error(`Send OTP error: ${err.message}`);
-        res.status(500).json({ message: "Something went wrong sending OTP." });
+        res.status(500).json({ message: err.message || "Something went wrong sending OTP." });
     }
 };
 
