@@ -4,8 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { loginUser } from "../api/api";
 import manasBanner from "../assets/manas-banner.png";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://dose-backend-ezck.onrender.com/api";
-
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
