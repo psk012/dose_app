@@ -1,30 +1,66 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signupUser } from "../api/api";
+import { sendOtp, verifyOtp, signupUser } from "../api/api";
+import manasBanner from "../assets/manas-banner.png";
 
 function Signup() {
+    const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password
+    
+    // Form States
     const [email, setEmail] = useState("");
+    const [otp, setOtp] = useState("");
     const [password, setPassword] = useState("");
+    const [signupToken, setSignupToken] = useState("");
+    
+    // UI States
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleSignup = async () => {
-        if (!email.trim() || !password.trim()) {
-            setError("Please enter both email and password");
+    const handleSendOtp = async () => {
+        if (!email.trim()) {
+            setError("Please enter your email");
             return;
         }
-
-        if (password.length < 6) {
-            setError("Password must be at least 6 characters");
-            return;
-        }
-
         setError("");
         setLoading(true);
-
         try {
-            await signupUser(email, password);
+            await sendOtp(email);
+            setStep(2);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (!otp.trim() || otp.length !== 4) {
+            setError("Please enter a valid 4-digit OTP");
+            return;
+        }
+        setError("");
+        setLoading(true);
+        try {
+            const data = await verifyOtp(email, otp);
+            setSignupToken(data.signupToken);
+            setStep(3);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSignup = async () => {
+        if (!isPasswordValid) {
+            setError("Please meet all password requirements");
+            return;
+        }
+        setError("");
+        setLoading(true);
+        try {
+            await signupUser(email, password, signupToken);
             navigate("/login");
         } catch (err) {
             setError(err.message);
@@ -33,60 +69,108 @@ function Signup() {
         }
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === "Enter") handleSignup();
+    const handleKeyDown = (e, callback) => {
+        if (e.key === "Enter") {
+            if (!loading) callback();
+        }
     };
+
+    // Password Validation Specs
+    const hasMinLength = password.length >= 6;
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const isPasswordValid = hasMinLength && hasNumber && hasSpecialChar;
 
     return (
         <div className="bg-surface min-h-screen flex items-center justify-center px-6 vellum-texture relative overflow-hidden">
-            {/* Decorative blurs */}
             <div className="absolute -top-20 -right-20 w-64 h-64 md:w-96 md:h-96 bg-primary-container/10 rounded-full blur-3xl md:blur-[100px] pointer-events-none opacity-100 md:opacity-60"></div>
             <div className="absolute bottom-1/4 -left-32 w-80 h-80 md:w-96 md:h-96 bg-tertiary-container/10 rounded-full blur-3xl md:blur-[100px] pointer-events-none opacity-100 md:opacity-60"></div>
 
             <div className="w-full max-w-sm space-y-8 z-10 relative">
-                {/* Branding */}
                 <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-primary text-xl">spa</span>
-                        </div>
-                        <span className="font-headline italic text-lg text-primary">The Living Journal</span>
-                    </div>
+                    <img src={manasBanner} alt="Manas" className="w-56 mx-auto mb-4 drop-shadow-sm" />
                     <h1 className="font-handwriting text-4xl text-primary">Start your journey</h1>
                     <p className="font-headline italic text-on-surface-variant/80 text-sm">
-                        Create a space for your thoughts.
+                        {step === 1 && "Create a space for your thoughts."}
+                        {step === 2 && `Enter the secure code sent to ${email}`}
+                        {step === 3 && "Secure your new account with a strong password."}
                     </p>
                 </div>
 
-                {/* Form */}
                 <div className="space-y-4">
-                    <div>
-                        <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-1.5 block">
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            placeholder="you@example.com"
-                            className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                        />
-                    </div>
+                    {/* STEP 1: Email */}
+                    {step === 1 && (
+                        <div>
+                            <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-1.5 block">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                placeholder="you@example.com"
+                                className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                onKeyDown={(e) => handleKeyDown(e, handleSendOtp)}
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
 
-                    <div>
-                        <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-1.5 block">
-                            Password
-                        </label>
-                        <input
-                            type="password"
-                            placeholder="Minimum 6 characters"
-                            className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                        />
-                    </div>
+                    {/* STEP 2: OTP */}
+                    {step === 2 && (
+                        <div>
+                            <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-1.5 block">
+                                4-Digit OTP
+                            </label>
+                            <input
+                                type="text"
+                                maxLength="4"
+                                placeholder="0000"
+                                className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface text-center tracking-widest text-xl placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} // Only allow digits
+                                onKeyDown={(e) => handleKeyDown(e, handleVerifyOtp)}
+                                disabled={loading}
+                            />
+                            <p onClick={() => setStep(1)} className="text-xs text-primary mt-2 cursor-pointer hover:underline text-right inline-block w-full">Change Email?</p>
+                        </div>
+                    )}
+
+                    {/* STEP 3: Password */}
+                    {step === 3 && (
+                        <div>
+                            <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-1.5 block">
+                                Create Password
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3 mb-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                onKeyDown={(e) => handleKeyDown(e, handleSignup)}
+                                disabled={loading}
+                            />
+                            
+                            <div className="p-4 bg-surface-container-low rounded-xl text-sm border border-outline/10 shadow-sm">
+                                <p className="font-semibold text-on-surface-variant mb-2">Password Requirements:</p>
+                                <ul className="space-y-1">
+                                    <li className={`flex items-center gap-2 transition-colors ${hasMinLength ? 'text-primary font-medium' : 'text-on-surface-variant/60'}`}>
+                                        <span className="material-symbols-outlined text-[16px]">{hasMinLength ? 'check_circle' : 'radio_button_unchecked'}</span>
+                                        Minimum 6 characters
+                                    </li>
+                                    <li className={`flex items-center gap-2 transition-colors ${hasNumber ? 'text-primary font-medium' : 'text-on-surface-variant/60'}`}>
+                                        <span className="material-symbols-outlined text-[16px]">{hasNumber ? 'check_circle' : 'radio_button_unchecked'}</span>
+                                        At least 1 digit
+                                    </li>
+                                    <li className={`flex items-center gap-2 transition-colors ${hasSpecialChar ? 'text-primary font-medium' : 'text-on-surface-variant/60'}`}>
+                                        <span className="material-symbols-outlined text-[16px]">{hasSpecialChar ? 'check_circle' : 'radio_button_unchecked'}</span>
+                                        At least 1 special character
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {error && (
@@ -96,14 +180,39 @@ function Signup() {
                     </div>
                 )}
 
-                <button
-                    onClick={handleSignup}
-                    disabled={loading}
-                    className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                    {loading ? "Creating account..." : "Create Account"}
-                    {!loading && <span className="material-symbols-outlined">person_add</span>}
-                </button>
+                {/* Buttons based on step */}
+                {step === 1 && (
+                    <button
+                        onClick={handleSendOtp}
+                        disabled={loading}
+                        className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        {loading ? "Sending OTP..." : "Verify Email"}
+                        {!loading && <span className="material-symbols-outlined">mail</span>}
+                    </button>
+                )}
+
+                {step === 2 && (
+                    <button
+                        onClick={handleVerifyOtp}
+                        disabled={loading}
+                        className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        {loading ? "Verifying..." : "Submit OTP"}
+                        {!loading && <span className="material-symbols-outlined">check_circle</span>}
+                    </button>
+                )}
+
+                {step === 3 && (
+                    <button
+                        onClick={handleSignup}
+                        disabled={loading || !isPasswordValid}
+                        className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        {loading ? "Creating account..." : "Create Account"}
+                        {!loading && <span className="material-symbols-outlined">person_add</span>}
+                    </button>
+                )}
 
                 <p className="text-center text-sm text-on-surface-variant/70">
                     Already have an account?{" "}

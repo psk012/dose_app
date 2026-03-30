@@ -2,6 +2,7 @@ import Reset from "../components/reset";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/navbar";
+import manasLogo from "../assets/manas-logo.png";
 
 function ResetPage({ isRunning, timeLeft, phase, startReset }) {
     const { logout } = useAuth();
@@ -16,10 +17,8 @@ function ResetPage({ isRunning, timeLeft, phase, startReset }) {
                 {/* Header */}
                 <header className="flex justify-between items-center mb-8">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary-container/30 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-on-primary-fixed text-xl">spa</span>
-                        </div>
-                        <span className="font-headline italic text-lg text-on-primary-fixed">The Living Journal</span>
+                        <img src={manasLogo} alt="Manas" className="w-9 h-9 rounded-lg object-cover" />
+                        <span className="text-lg text-on-primary-fixed" style={{ fontFamily: "'Nusrat', serif" }}>Manas</span>
                     </div>
                     <button
                         onClick={logout}

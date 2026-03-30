@@ -6,11 +6,13 @@ import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/navbar";
 import WordOfTheDay from "../components/wordOfTheDay";
 import LettingGo from "../components/lettingGo";
+import manasLogo from "../assets/manas-logo.png";
 
 function Home({
     mood,
     setMood,
     updateDose,
+    resetMood,
     isRunning,
     timeLeft,
     phase,
@@ -35,10 +37,8 @@ function Home({
                 {/* Header */}
                 <header className="flex justify-between items-center mb-8">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary-container/30 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-on-primary-fixed text-xl">spa</span>
-                        </div>
-                        <span className="font-headline italic text-lg text-on-primary-fixed">The Living Journal</span>
+                        <img src={manasLogo} alt="Manas" className="w-9 h-9 rounded-lg object-cover" />
+                        <span className="text-lg text-on-primary-fixed" style={{ fontFamily: "'Nusrat', serif" }}>Manas</span>
                     </div>
                     <button
                         onClick={logout}
@@ -65,7 +65,7 @@ function Home({
                     {/* Content sections */}
                     <div className="flex-1 w-full space-y-6 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
                         <div className="md:col-span-1 lg:col-span-1 md:row-span-1">
-                            <Mood mood={mood} setMood={setMood} updateDose={updateDose} />
+                            <Mood mood={mood} setMood={setMood} updateDose={updateDose} onReset={resetMood} />
                         </div>
 
                         <div className="md:col-span-1 lg:col-span-1 md:row-span-1">

@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { loginUser } from "../api/api";
+import manasBanner from "../assets/manas-banner.png";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://dose-backend-ezck.onrender.com/api";
 
 function Login() {
     const [email, setEmail] = useState("");
@@ -44,12 +47,7 @@ function Login() {
             <div className="w-full max-w-sm space-y-8 z-10 relative">
                 {/* Branding */}
                 <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-primary text-xl">spa</span>
-                        </div>
-                        <span className="font-headline italic text-lg text-primary">The Living Journal</span>
-                    </div>
+                    <img src={manasBanner} alt="Manas" className="w-56 mx-auto mb-4 drop-shadow-sm" />
                     <h1 className="font-handwriting text-4xl text-primary">Welcome back</h1>
                     <p className="font-headline italic text-on-surface-variant/80 text-sm">
                         Pick up where you left off.

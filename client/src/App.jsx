@@ -8,6 +8,7 @@ import ResetPage from "./pages/resetpage";
 import JournalPage from "./pages/journalpage";
 import FocusPage from "./pages/focuspage";
 import TasksPage from "./pages/taskspage";
+import VerifyEmail from "./pages/verifyEmail";
 import ProtectedRoute from "./components/protectedroute";
 import { useAuth } from "./context/AuthContext";
 import { fetchJournals } from "./api/api";
@@ -111,6 +112,16 @@ function App() {
     setDose(newDose);
   }
 
+  function resetMood() {
+    setMood("");
+    setDose({
+      dopamine: 50,
+      oxytocin: 50,
+      serotonin: 50,
+      endorphin: 50,
+    });
+  }
+
   return (
     <Routes>
       {/* 🔒 PROTECTED ROUTES */}
@@ -122,6 +133,7 @@ function App() {
               mood={mood}
               setMood={setMood}
               updateDose={updateDose}
+              resetMood={resetMood}
               isRunning={isRunning}
               timeLeft={timeLeft}
               phase={phase}
@@ -189,6 +201,7 @@ function App() {
       {/* 🌐 PUBLIC ROUTES */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
     </Routes>
   );
 }

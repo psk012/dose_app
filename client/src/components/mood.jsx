@@ -1,4 +1,4 @@
-function Mood({ mood, setMood, updateDose }) {
+function Mood({ mood, setMood, updateDose, onReset }) {
     const moods = [
         { name: "Calm", icon: "spa", description: "Peaceful" },
         { name: "Heavy", icon: "cloud", description: "Weighted" },
@@ -8,9 +8,21 @@ function Mood({ mood, setMood, updateDose }) {
 
     return (
         <div className="bg-surface-container-lowest rounded-xl p-5">
-            <h2 className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-4">
-                How are you feeling?
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold">
+                    How are you feeling?
+                </h2>
+                {mood && (
+                    <button
+                        onClick={onReset}
+                        className="flex items-center gap-1 text-xs font-medium text-on-surface-variant/70 hover:text-primary transition-colors cursor-pointer px-2 py-1 rounded-full hover:bg-primary-container/20"
+                        title="Reset mood"
+                    >
+                        <span className="material-symbols-outlined text-sm">refresh</span>
+                        Reset
+                    </button>
+                )}
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
                 {moods.map((m) => {

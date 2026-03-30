@@ -18,11 +18,33 @@ export async function loginUser(email, password) {
   return data; // { token }
 }
 
-export async function signupUser(email, password) {
+export async function sendOtp(email) {
+  const res = await fetch(`${API_BASE}/send-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to send OTP");
+  return data;
+}
+
+export async function verifyOtp(email, otp) {
+  const res = await fetch(`${API_BASE}/verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, otp }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Verification failed");
+  return data;
+}
+
+export async function signupUser(email, password, signupToken) {
   const res = await fetch(`${API_BASE}/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, signupToken }),
   });
 
   const data = await res.json();
@@ -32,6 +54,15 @@ export async function signupUser(email, password) {
   }
 
   return data; // { message: "User created" }
+}
+
+export async function verifyEmail(token) {
+  const res = await fetch(`${API_BASE}/verify-email?token=${token}`);
+  const data = await res.json();
+  if (!res.ok) {
+     throw new Error(data.message || "Verification failed");
+  }
+  return data;
 }
 
 // ─── JOURNAL ─────────────────────────────────────────
