@@ -5,14 +5,7 @@ function ProtectedRoute({ children }) {
     const { isAuthenticated } = useAuth();
 
     if (!isAuthenticated) {
-        const hasVisited = localStorage.getItem("hasVisited");
-        
-        if (!hasVisited) {
-            localStorage.setItem("hasVisited", "true");
-            return <Navigate to="/signup" />;
-        }
-        
-        return <Navigate to="/login" />;
+        return <Navigate to="/welcome" />;
     }
 
     return children;
