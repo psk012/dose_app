@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 async function sendEmail(to, subject, html) {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.warn("⚠️ SMTP credentials missing in .env! Email not sent.");
-        return;
+        throw new Error("SMTP credentials missing on server. Check Environment Variables.");
     }
     
     try {
@@ -26,6 +26,7 @@ async function sendEmail(to, subject, html) {
     } catch (error) {
         logger.error("Failed to send email", { error });
         console.error("Failed to send email:", error);
+        throw new Error("Failed to send email visually. Check server logs or SMTP setup.");
     }
 }
 

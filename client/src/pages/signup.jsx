@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { sendOtp, verifyOtp, signupUser } from "../api/api";
 import manasBanner from "../assets/manas-banner.png";
@@ -15,7 +15,21 @@ function Signup() {
     // UI States
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [resendTimer, setResendTimer] = useState(180);
+    const [canResend, setCanResend] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        let interval;
+        if (step === 2 && resendTimer > 0) {
+            interval = setInterval(() => {
+                setResendTimer((prev) => prev - 1);
+            }, 1000);
+        } else if (resendTimer === 0) {
+            setCanResend(true);
+        }
+        return () => clearInterval(interval);
+    }, [step, resendTimer]);
 
     const handleSendOtp = async () => {
         if (!email.trim()) {
@@ -27,6 +41,8 @@ function Signup() {
         try {
             await sendOtp(email);
             setStep(2);
+            setResendTimer(180);
+            setCanResend(false);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -132,7 +148,23 @@ function Signup() {
                                 onKeyDown={(e) => handleKeyDown(e, handleVerifyOtp)}
                                 disabled={loading}
                             />
-                            <p onClick={() => setStep(1)} className="text-xs text-primary mt-2 cursor-pointer hover:underline text-right inline-block w-full">Change Email?</p>
+                            
+                            <div className="flex justify-between items-center mt-3">
+                                <p onClick={() => setStep(1)} className="text-xs text-primary cursor-pointer hover:underline">Change Email?</p>
+                                
+                                {canResend ? (
+                                    <p 
+                                        onClick={!loading ? handleSendOtp : undefined} 
+                                        className={`text-xs font-semibold ${loading ? 'text-on-surface-variant/40 cursor-not-allowed' : 'text-primary cursor-pointer hover:underline'}`}
+                                    >
+                                        {loading ? "Sending..." : "Resend OTP"}
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-on-surface-variant/60 font-mono">
+                                        Resend in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     )}
 
