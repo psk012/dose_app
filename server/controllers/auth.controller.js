@@ -33,7 +33,8 @@ exports.sendOtp = async (req, res) => {
         const newOtp = new Otp({ email: email.toLowerCase(), otp: otpCode });
         await newOtp.save();
 
-        await sendEmail(
+        // Send email non-blockingly
+        sendEmail(
             email, 
             "Your Manas Verification Code 💜", 
             `<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #faf9ff; border-radius: 16px; overflow: hidden; border: 1px solid #ede9ff;">
@@ -43,7 +44,7 @@ exports.sendOtp = async (req, res) => {
                 </div>
                 <div style="padding: 32px 28px; text-align: center;">
                     <p style="color: #4a4458; font-size: 16px; margin: 0 0 6px; font-weight: 500;">hey, welcome to manas 💜</p>
-                    <p style="color: #7c7291; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">thank you for choosing us. here's your verification code — you're just one step away!</p>
+                    <p style="color: #7c7291; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">thank you for choosing us. here's your verification code; you're just one step away!</p>
                     <div style="background: #fff; border: 2px solid #e4dfff; border-radius: 12px; padding: 20px; display: inline-block; margin: 0 0 24px;">
                         <span style="font-size: 36px; font-weight: 700; letter-spacing: 10px; color: #6c5ce7;">${otpCode}</span>
                     </div>
@@ -53,9 +54,8 @@ exports.sendOtp = async (req, res) => {
                     <p style="color: #b0a8c9; font-size: 11px; margin: 0;">made with care · manas</p>
                 </div>
             </div>`
-        );
+        ).then(() => logger.info(`OTP sent to ${email}`)).catch((e) => logger.error(`Failed to send OTP to ${email}: ${e.message}`));
 
-        logger.info(`OTP sent to ${email}`);
         res.status(200).json({ message: "OTP sent successfully" });
     } catch (err) {
         logger.error(`Send OTP error: ${err.message}`);

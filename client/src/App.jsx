@@ -8,7 +8,8 @@ import ResetPage from "./pages/resetpage";
 import Welcome from "./pages/welcome";
 import JournalPage from "./pages/journalpage";
 import FocusPage from "./pages/focuspage";
-import TasksPage from "./pages/taskspage";
+import ClearMind from "./pages/clearMind";
+import Insights from "./pages/insights";
 import VerifyEmail from "./pages/verifyEmail";
 import ProtectedRoute from "./components/protectedroute";
 import { useAuth } from "./context/AuthContext";
@@ -17,18 +18,9 @@ import { fetchJournals } from "./api/api";
 function App() {
   const { token } = useAuth();
 
-  const [mood, setMood] = useState("");
-
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   const [phase, setPhase] = useState("Breathe In");
-
-  const [dose, setDose] = useState({
-    dopamine: 50,
-    oxytocin: 50,
-    serotonin: 50,
-    endorphin: 50,
-  });
 
   const [entry, setEntry] = useState("");
   const [entries, setEntries] = useState([]);
@@ -61,8 +53,13 @@ function App() {
       time--;
       setTimeLeft(time);
 
-      if (time % 6 < 3) {
+      const elapsed = 36 - time;
+      const cycleTime = elapsed % 12;
+
+      if (cycleTime < 4) {
         setPhase("Breathe In");
+      } else if (cycleTime < 8) {
+        setPhase("Hold");
       } else {
         setPhase("Breathe Out");
       }
@@ -70,57 +67,19 @@ function App() {
       if (time <= 0) {
         clearInterval(interval);
         setIsRunning(false);
-        setTimeLeft(30);
+        setTimeLeft(36);
         setPhase("Breathe In");
       }
     }, 1000);
 
-    // ✅ Cleanup: clear interval if component unmounts mid-reset
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, timeLeft]);
 
   function startReset() {
     if (isRunning) return;
-    setTimeLeft(30);
+    setPhase("Breathe In"); // Explicitly set start phase
+    setTimeLeft(36);
     setIsRunning(true);
-  }
-
-  // DOSE update
-  function updateDose(selectedMood) {
-    let newDose = { ...dose };
-
-    if (selectedMood === "Low") {
-      newDose.dopamine += 10;
-      newDose.endorphin += 5;
-    }
-
-    if (selectedMood === "Heavy") {
-      newDose.serotonin += 10;
-    }
-
-    if (selectedMood === "Scattered") {
-      newDose.dopamine += 5;
-    }
-
-    if (selectedMood === "Calm") {
-      newDose.oxytocin += 5;
-    }
-
-    Object.keys(newDose).forEach((key) => {
-      newDose[key] = Math.min(newDose[key], 100);
-    });
-
-    setDose(newDose);
-  }
-
-  function resetMood() {
-    setMood("");
-    setDose({
-      dopamine: 50,
-      oxytocin: 50,
-      serotonin: 50,
-      endorphin: 50,
-    });
   }
 
   return (
@@ -130,23 +89,7 @@ function App() {
         path="/"
         element={
           <ProtectedRoute>
-            <Home
-              mood={mood}
-              setMood={setMood}
-              updateDose={updateDose}
-              resetMood={resetMood}
-              isRunning={isRunning}
-              timeLeft={timeLeft}
-              phase={phase}
-              startReset={startReset}
-              dose={dose}
-              entry={entry}
-              setEntry={setEntry}
-              setEntries={setEntries}
-              entries={entries}
-              journalLoading={journalLoading}
-              journalError={journalError}
-            />
+            <Home />
           </ProtectedRoute>
         }
       />
@@ -191,10 +134,19 @@ function App() {
       />
 
       <Route
-        path="/tasks"
+        path="/insights"
         element={
           <ProtectedRoute>
-            <TasksPage />
+            <Insights />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/clear-mind"
+        element={
+          <ProtectedRoute>
+            <ClearMind />
           </ProtectedRoute>
         }
       />

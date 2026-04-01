@@ -149,7 +149,7 @@ function Focus() {
         setTimeLeft(totalSeconds);
         setTotalTime(totalSeconds);
         setMode("working");
-        // Trigger audio from user gesture (tap) — required for mobile browsers
+        // Trigger audio from user gesture (tap); required for mobile browsers
         if (ambientRef.current) ambientRef.current.userPlay();
     }
 
@@ -311,7 +311,7 @@ function Focus() {
                             {timeDisplay}
                         </p>
                         <p className="font-headline italic text-tertiary text-sm">
-                            Break time — stretch & breathe
+                            Break time; stretch & breathe
                         </p>
                     </div>
                     <button

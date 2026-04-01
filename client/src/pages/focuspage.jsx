@@ -8,7 +8,7 @@ function FocusPage() {
     const { logout } = useAuth();
 
     return (
-        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden">
+        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-28">
             {/* Decorative blurs */}
             <div className="absolute -top-20 -right-20 w-64 h-64 md:w-96 md:h-96 bg-primary-container/10 rounded-full blur-3xl md:blur-[100px] pointer-events-none opacity-100 md:opacity-60"></div>
             <div className="absolute top-1/2 -left-32 w-80 h-80 md:w-96 md:h-96 bg-tertiary-container/10 rounded-full blur-3xl md:blur-[100px] pointer-events-none opacity-100 md:opacity-60"></div>

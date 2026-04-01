@@ -14,7 +14,9 @@ const auth = require("./middleware/auth.middleware");
 const authRoutes = require("./routes/auth.routes");
 const journalRoutes = require("./routes/journal.routes");
 const focusRoutes = require("./routes/focus.routes");
-const taskRoutes = require("./routes/task.routes");
+const insightsRoutes = require("./routes/insights.routes");
+const promptRoutes = require("./routes/prompt.routes");
+const reflectionRoutes = require("./routes/reflection.routes");
 
 // Custom Mongo Sanitize to handle Express 5 req.query getter crash
 const mongoSanitize = () => (req, res, next) => {
@@ -79,7 +81,9 @@ app.post("/api/generate", auth, aiLimiter, async (req, res) => {
 app.use("/api", authRoutes); 
 app.use("/api/journal", journalRoutes);
 app.use("/api/focus", focusRoutes);
-app.use("/api/tasks", taskRoutes);
+app.use("/api/insights", insightsRoutes);
+app.use("/api/prompts", promptRoutes);
+app.use("/api/reflections", reflectionRoutes);
 
 // ─── START SERVER ────────────────────────────────────
 app.listen(PORT, () => {

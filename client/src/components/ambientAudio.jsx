@@ -36,7 +36,7 @@ const AmbientAudio = forwardRef(function AmbientAudio({ isPlaying, trackId }, re
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.catch(() => {
-                    // Autoplay blocked — will be unlocked via userPlay() from a tap
+                    // Autoplay blocked; will be unlocked via userPlay() from a tap
                 });
             }
         } else {
