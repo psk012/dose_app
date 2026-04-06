@@ -19,7 +19,7 @@ function Signup() {
     // UI States
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
-    const [resendTimer, setResendTimer] = useState(180);
+    const [resendTimer, setResendTimer] = useState(30);
     const [canResend, setCanResend] = useState(false);
     const navigate = useNavigate();
 
@@ -45,7 +45,7 @@ function Signup() {
         try {
             await sendOtp(email);
             setStep(2);
-            setResendTimer(180);
+            setResendTimer(30);
             setCanResend(false);
         } catch (err) {
             setError(err.message);
