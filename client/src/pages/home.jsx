@@ -129,6 +129,19 @@ function Home() {
                             <p className="text-sm text-on-surface-variant/80 mt-1">Log your feelings and view insights.</p>
                         </div>
                     </button>
+
+                    <button 
+                        onClick={() => navigate("/safetynet")}
+                        className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3 p-6 bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group sm:col-span-2"
+                    >
+                        <div className="w-12 h-12 rounded-2xl bg-secondary-container/50 text-secondary flex items-center justify-center group-hover:bg-secondary group-hover:text-on-secondary transition-colors">
+                            <span className="material-symbols-outlined text-2xl">shield_with_heart</span>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-on-surface text-lg">SafetyNet</h3>
+                            <p className="text-sm text-on-surface-variant/80 mt-1">Your emotional safety net. Trusted contacts watch over you.</p>
+                        </div>
+                    </button>
                 </div>
 
                 <Navbar />

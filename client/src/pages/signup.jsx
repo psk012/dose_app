@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { sendOtp, verifyOtp, signupUser } from "../api/api";
+import { sendOtp, verifyOtp, signupUser, loginUser, setupSafetyNet } from "../api/api";
 import manasBanner from "../assets/manas-banner.png";
 
 function Signup() {
-    const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password
+    const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password, 4: SafetyNet
     
     // Form States
     const [email, setEmail] = useState("");
@@ -12,6 +12,10 @@ function Signup() {
     const [password, setPassword] = useState("");
     const [signupToken, setSignupToken] = useState("");
     
+    // SafetyNet contact states
+    const [contacts, setContacts] = useState([{ name: "", email: "" }]);
+    const [tempToken, setTempToken] = useState("");
+
     // UI States
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -77,12 +81,66 @@ function Signup() {
         setLoading(true);
         try {
             await signupUser(email, password, signupToken);
+            // After account creation, log in to get a token for SafetyNet setup
+            const loginData = await loginUser(email, password);
+            setTempToken(loginData.token);
+            setStep(4); // Advance to SafetyNet onboarding
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddContact = () => {
+        if (contacts.length < 2) {
+            setContacts([...contacts, { name: "", email: "" }]);
+        }
+    };
+
+    const handleRemoveContact = (index) => {
+        setContacts(contacts.filter((_, i) => i !== index));
+        if (contacts.length <= 1) {
+            setContacts([{ name: "", email: "" }]);
+        }
+    };
+
+    const handleContactChange = (index, field, value) => {
+        const updated = [...contacts];
+        updated[index][field] = value;
+        setContacts(updated);
+    };
+
+    const handleSafetyNetSetup = async () => {
+        // Validate contacts
+        const validContacts = contacts.filter(c => c.name.trim() && c.email.trim());
+        if (validContacts.length === 0) {
+            setError("Please add at least one contact, or skip this step");
+            return;
+        }
+
+        // Basic email validation
+        for (const c of validContacts) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) {
+                setError(`Invalid email: ${c.email}`);
+                return;
+            }
+        }
+
+        setError("");
+        setLoading(true);
+        try {
+            await setupSafetyNet(tempToken, validContacts);
             navigate("/login");
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSkipSafetyNet = () => {
+        navigate("/login");
     };
 
     const handleKeyDown = (e, callback) => {
@@ -97,6 +155,13 @@ function Signup() {
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const isPasswordValid = hasMinLength && hasNumber && hasSpecialChar;
 
+    const stepSubtext = {
+        1: "Create a space for your thoughts.",
+        2: `Enter the secure code sent to ${email}`,
+        3: "Secure your new account with a strong password.",
+        4: "One last thing — your safety net.",
+    };
+
     return (
         <div className="bg-surface min-h-screen flex items-center justify-center px-6 vellum-texture relative overflow-hidden">
             <div className="absolute -top-20 -right-20 w-64 h-64 md:w-96 md:h-96 bg-primary-container/10 rounded-full blur-3xl md:blur-[100px] pointer-events-none opacity-100 md:opacity-60"></div>
@@ -105,11 +170,14 @@ function Signup() {
             <div className="w-full max-w-sm space-y-8 z-10 relative">
                 <div className="text-center space-y-3">
                     <img src={manasBanner} alt="Manas" className="w-56 mx-auto mb-4 drop-shadow-sm" />
-                    <h1 className="font-handwriting text-4xl text-primary">Start your journey</h1>
+                    {step <= 3 && (
+                        <h1 className="font-handwriting text-4xl text-primary">Start your journey</h1>
+                    )}
+                    {step === 4 && (
+                        <h1 className="font-handwriting text-4xl text-primary">Your safety net</h1>
+                    )}
                     <p className="font-headline italic text-on-surface-variant/80 text-sm">
-                        {step === 1 && "Create a space for your thoughts."}
-                        {step === 2 && `Enter the secure code sent to ${email}`}
-                        {step === 3 && "Secure your new account with a strong password."}
+                        {stepSubtext[step]}
                     </p>
                 </div>
 
@@ -144,7 +212,7 @@ function Signup() {
                                 placeholder="0000"
                                 className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface text-center tracking-widest text-xl placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
                                 value={otp}
-                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} // Only allow digits
+                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                                 onKeyDown={(e) => handleKeyDown(e, handleVerifyOtp)}
                                 disabled={loading}
                             />
@@ -203,6 +271,68 @@ function Signup() {
                             </div>
                         </div>
                     )}
+
+                    {/* STEP 4: SafetyNet Contacts */}
+                    {step === 4 && (
+                        <div className="space-y-4 animate-fade-in">
+                            <div className="p-4 bg-primary-container/20 rounded-2xl border border-primary/10">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary-container/60 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <span className="material-symbols-outlined text-xl">shield_with_heart</span>
+                                    </div>
+                                    <div>
+                                        <p className="text-on-surface text-sm leading-relaxed">
+                                            Add 1–2 people you trust with your heart. If we ever sense you're going through a tough time, we'll gently ask them to check in — <strong>without sharing anything you've written</strong>.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {contacts.map((contact, index) => (
+                                <div key={index} className="p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/40 space-y-3 relative">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold">
+                                            Contact {index + 1}
+                                        </span>
+                                        {contacts.length > 1 && (
+                                            <button
+                                                onClick={() => handleRemoveContact(index)}
+                                                className="text-on-surface-variant/50 hover:text-error transition-colors cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">close</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Their name"
+                                        className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/50 rounded-xl text-on-surface text-sm placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
+                                        value={contact.name}
+                                        onChange={(e) => handleContactChange(index, "name", e.target.value)}
+                                        disabled={loading}
+                                    />
+                                    <input
+                                        type="email"
+                                        placeholder="their@email.com"
+                                        className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/50 rounded-xl text-on-surface text-sm placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
+                                        value={contact.email}
+                                        onChange={(e) => handleContactChange(index, "email", e.target.value)}
+                                        disabled={loading}
+                                    />
+                                </div>
+                            ))}
+
+                            {contacts.length < 2 && (
+                                <button
+                                    onClick={handleAddContact}
+                                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/40 rounded-2xl text-on-surface-variant/60 text-sm font-medium hover:border-primary/30 hover:text-primary/70 transition-all cursor-pointer"
+                                >
+                                    <span className="material-symbols-outlined text-lg">add</span>
+                                    Add another contact
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {error && (
@@ -246,15 +376,37 @@ function Signup() {
                     </button>
                 )}
 
-                <p className="text-center text-sm text-on-surface-variant/70">
-                    Already have an account?{" "}
-                    <span
-                        className="text-primary font-semibold cursor-pointer hover:underline"
-                        onClick={() => navigate("/login")}
-                    >
-                        Sign in
-                    </span>
-                </p>
+                {step === 4 && (
+                    <div className="space-y-3">
+                        <button
+                            onClick={handleSafetyNetSetup}
+                            disabled={loading}
+                            className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                            {loading ? "Setting up..." : "Complete Setup"}
+                            {!loading && <span className="material-symbols-outlined">shield_with_heart</span>}
+                        </button>
+                        <button
+                            onClick={handleSkipSafetyNet}
+                            disabled={loading}
+                            className="w-full py-3 text-on-surface-variant/70 text-sm font-medium hover:text-on-surface-variant transition-colors cursor-pointer"
+                        >
+                            Skip for now — I'll set this up later
+                        </button>
+                    </div>
+                )}
+
+                {step <= 3 && (
+                    <p className="text-center text-sm text-on-surface-variant/70">
+                        Already have an account?{" "}
+                        <span
+                            className="text-primary font-semibold cursor-pointer hover:underline"
+                            onClick={() => navigate("/login")}
+                        >
+                            Sign in
+                        </span>
+                    </p>
+                )}
             </div>
         </div>
     );

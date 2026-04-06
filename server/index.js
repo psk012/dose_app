@@ -17,6 +17,7 @@ const focusRoutes = require("./routes/focus.routes");
 const insightsRoutes = require("./routes/insights.routes");
 const promptRoutes = require("./routes/prompt.routes");
 const reflectionRoutes = require("./routes/reflection.routes");
+const safetynetRoutes = require("./routes/safetynet.routes");
 
 // Custom Mongo Sanitize to handle Express 5 req.query getter crash
 const mongoSanitize = () => (req, res, next) => {
@@ -84,6 +85,7 @@ app.use("/api/focus", focusRoutes);
 app.use("/api/insights", insightsRoutes);
 app.use("/api/prompts", promptRoutes);
 app.use("/api/reflections", reflectionRoutes);
+app.use("/api/safetynet", safetynetRoutes);
 
 // ─── START SERVER ────────────────────────────────────
 app.listen(PORT, () => {

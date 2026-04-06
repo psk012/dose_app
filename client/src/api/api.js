@@ -149,3 +149,98 @@ export async function getFocusStats(token) {
 
   return res.json();
 }
+
+// ─── SAFETYNET ───────────────────────────────────────
+
+export async function setupSafetyNet(token, contacts) {
+  const res = await apiFetch(`${API_BASE}/safetynet/setup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify({ contacts }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to set up SafetyNet");
+  return data;
+}
+
+export async function getSafetyNetConfig(token) {
+  const res = await apiFetch(`${API_BASE}/safetynet/config`, {
+    headers: { Authorization: token },
+  });
+  if (!res.ok) throw new Error("Failed to fetch SafetyNet config");
+  return res.json();
+}
+
+export async function updateSafetyNetConfig(token, config) {
+  const res = await apiFetch(`${API_BASE}/safetynet/config`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify(config),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to update SafetyNet");
+  return data;
+}
+
+export async function updateSafetyNetContacts(token, contacts) {
+  const res = await apiFetch(`${API_BASE}/safetynet/contacts`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify({ contacts }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to update contacts");
+  return data;
+}
+
+export async function getSafetyNetStatus(token) {
+  const res = await apiFetch(`${API_BASE}/safetynet/status`, {
+    headers: { Authorization: token },
+  });
+  if (!res.ok) throw new Error("Failed to fetch SafetyNet status");
+  return res.json();
+}
+
+export async function pauseSafetyNet(token, days) {
+  const res = await apiFetch(`${API_BASE}/safetynet/pause`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify({ days }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to pause SafetyNet");
+  return data;
+}
+
+export async function resumeSafetyNet(token) {
+  const res = await apiFetch(`${API_BASE}/safetynet/resume`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to resume SafetyNet");
+  return data;
+}
+
+export async function getSafetyNetAuditLog(token) {
+  const res = await apiFetch(`${API_BASE}/safetynet/audit-log`, {
+    headers: { Authorization: token },
+  });
+  if (!res.ok) throw new Error("Failed to fetch audit log");
+  return res.json();
+}

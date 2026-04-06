@@ -1,34 +1,36 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 
+const COLLECTIONS_TO_DROP = [
+    "users",
+    "otps",
+    "journals",
+    "moodentries",
+    "reflections",
+    "focussessions",
+    "safetynetconfigs",
+    "riskassessments",
+    "alertlogs",
+];
+
 mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
     console.log("Connected to MongoDB");
     
-    // Drop Users
-    try {
-        await mongoose.connection.collection("users").drop();
-        console.log("Users collection dropped successfully.");
-    } catch (e) {
-        if (e.code === 26) {
-           console.log("Users collection does not exist, nothing to drop.");
-        } else {
-           console.error("Error dropping users:", e);
-        }
-    }
-    
-    // Drop OTPs
-    try {
-        await mongoose.connection.collection("otps").drop();
-        console.log("OTPs collection dropped successfully.");
-    } catch (e) {
-        if (e.code === 26) {
-           console.log("OTPs collection does not exist, nothing to drop.");
-        } else {
-           console.error("Error dropping OTPs:", e);
+    for (const name of COLLECTIONS_TO_DROP) {
+        try {
+            await mongoose.connection.collection(name).drop();
+            console.log(`✅ ${name} — dropped`);
+        } catch (e) {
+            if (e.code === 26) {
+               console.log(`⬚  ${name} — does not exist, skipped`);
+            } else {
+               console.error(`❌ ${name} — error:`, e.message);
+            }
         }
     }
 
+    console.log("\n🧹 Database wipe complete.");
     process.exit(0);
   })
   .catch((err) => {

@@ -2,6 +2,8 @@ const Journal = require("../models/journal");
 const User = require("../models/user");
 const MoodEntry = require("../models/moodEntry");
 const validator = require("validator");
+const logger = require("../logger");
+const { analyzeUserEmotionalPattern } = require("../services/safetynet.service");
 
 exports.createEntry = async (req, res) => {
     try {
@@ -36,6 +38,11 @@ exports.createEntry = async (req, res) => {
             user.lastJournalDate = now;
             await user.save();
         }
+
+        // Fire-and-forget SafetyNet analysis (non-blocking)
+        analyzeUserEmotionalPattern(newEntry.userId).catch(err => {
+            logger.error("SafetyNet analysis failed (non-blocking)", { error: err.message });
+        });
 
         res.status(201).json({ message: "Entry saved", entry: newEntry });
     } catch (err) {
