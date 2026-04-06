@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://dose-backend-ezck.onrender.com/api";
 
 export async function apiFetch(url, options = {}, retries = 2, backoff = 500) {
-  const timeout = options.timeout || 10000; // 10s default
+  const timeout = options.timeout || 25000; // 25s default to prevent email SMTP timeouts
   
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
