@@ -80,37 +80,32 @@ app.get("/api/health", async (req, res) => {
         timestamp: new Date().toISOString(),
         smtp: { status: "unknown" },
         env: {
-            EMAIL_USER: process.env.EMAIL_USER ? `set (${process.env.EMAIL_USER})` : "MISSING ❌",
-            EMAIL_PASS: process.env.EMAIL_PASS ? `set (${process.env.EMAIL_PASS.length} chars)` : "MISSING ❌",
-            SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com (default)",
-            SMTP_PORT: process.env.SMTP_PORT || "587 (default)",
-            MONGODB_URI: process.env.MONGODB_URI ? "set" : "MISSING ❌",
-            JWT_SECRET: process.env.JWT_SECRET ? "set" : "MISSING ❌",
+            EMAIL_USER: process.env.EMAIL_USER ? `set` : "MISSING",
         }
     };
 
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        // Test port 465 (SMTPS) because Render often blocks 587
         try {
             const transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST || "smtp.gmail.com",
-                port: parseInt(process.env.SMTP_PORT || "587"),
-                secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+                host: "smtp.gmail.com",
+                port: 465,
+                secure: true,
                 auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
                 connectionTimeout: 8000,
-                greetingTimeout: 8000,
             });
             const start = Date.now();
             await transporter.verify();
             transporter.close();
-            health.smtp = { status: "connected", latency: `${Date.now() - start}ms` };
-        } catch (err) {
-            health.smtp = { status: "FAILED", error: err.message, code: err.code };
+            health.smtp = { status: "connected_on_465", latency: `${Date.now() - start}ms` };
+        } catch (err465) {
+            health.smtp = { status: "FAILED_465", error: err465.message };
         }
     } else {
         health.smtp = { status: "FAILED", error: "SMTP credentials not configured" };
     }
 
-    const httpStatus = health.smtp.status === "connected" ? 200 : 503;
+    const httpStatus = health.smtp.status === "connected_on_465" ? 200 : 503;
     res.status(httpStatus).json(health);
 });
 

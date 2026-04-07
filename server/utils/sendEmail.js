@@ -7,8 +7,9 @@ const logger = require("../logger");
 function createTransporter() {
     return nodemailer.createTransport({
         host: process.env.SMTP_HOST || "smtp.gmail.com",
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+        // Force 465 by default to bypass Render port 587 outbound firewall
+        port: parseInt(process.env.SMTP_PORT || "465"),
+        secure: parseInt(process.env.SMTP_PORT || "465") === 465,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS,
@@ -27,7 +28,7 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         .then(() => {
             console.log("✅ SMTP connection verified and ready");
             console.log(`   Host: ${process.env.SMTP_HOST || "smtp.gmail.com"}`);
-            console.log(`   Port: ${process.env.SMTP_PORT || "587"}`);
+            console.log(`   Port: ${process.env.SMTP_PORT || "465"}`);
             console.log(`   User: ${process.env.EMAIL_USER}`);
             testTransporter.close();
         })
