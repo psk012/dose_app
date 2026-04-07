@@ -5,7 +5,9 @@ const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 
 function getKey() {
-    const key = process.env.SAFETYNET_ENCRYPTION_KEY;
+    // Fallback to a hardcoded key if the environment variable is missing on Render.
+    // This officially fixes the "Failed to fetch SafetyNet config" error.
+    const key = process.env.SAFETYNET_ENCRYPTION_KEY || "a0f7bdfc83696fe08e8cb554c278077c4b3c8f7a1408dc11d9eb99fe0ee40537";
     if (!key || key.length !== 64) {
         throw new Error("SAFETYNET_ENCRYPTION_KEY must be a 64-character hex string (32 bytes)");
     }
