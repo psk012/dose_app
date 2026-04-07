@@ -40,15 +40,22 @@ function SafetyNet() {
             setLoading(true);
             setError("");
 
-            // Load each independently — one failure shouldn't block others
             const [configResult, statusResult, logResult] = await Promise.allSettled([
                 getSafetyNetConfig(token),
                 getSafetyNetStatus(token),
                 getSafetyNetAuditLog(token),
             ]);
 
-            if (configResult.status === "fulfilled") setConfig(configResult.value);
-            if (statusResult.status === "fulfilled") setStatus(statusResult.value);
+            // Properly handle rejected promises so the UI doesn't crash on null
+            if (configResult.status === "rejected") {
+                throw new Error(configResult.reason.message || "Failed to load SafetyNet config");
+            }
+            if (statusResult.status === "rejected") {
+                throw new Error(statusResult.reason.message || "Failed to load SafetyNet status");
+            }
+
+            setConfig(configResult.value);
+            setStatus(statusResult.value);
             if (logResult.status === "fulfilled") setAuditLog(logResult.value);
         } catch (err) {
             setError(err.message);
