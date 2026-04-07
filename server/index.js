@@ -83,6 +83,7 @@ app.get("/api/health", async (req, res) => {
             EMAIL_FROM: process.env.EMAIL_FROM ? `set (${process.env.EMAIL_FROM})` : "Using default onboarding domain",
             MONGODB_URI: process.env.MONGODB_URI ? "set" : "MISSING ❌",
             JWT_SECRET: process.env.JWT_SECRET ? "set" : "MISSING ❌",
+            SAFETYNET_ENCRYPTION_KEY: process.env.SAFETYNET_ENCRYPTION_KEY ? "set" : "MISSING ❌",
         }
     };
 
