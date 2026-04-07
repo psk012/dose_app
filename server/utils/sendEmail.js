@@ -32,7 +32,10 @@ async function sendEmail(to, subject, html) {
         const start = Date.now();
         const info = await transporter.sendMail({
             from: `"Manas" <${process.env.EMAIL_USER}>`,
-            to, subject, html
+            to, 
+            subject, 
+            html,
+            text: `Your Manas Verification Code is: ${html.match(/>(\d{4})</)?.[1] || "check the HTML version"}. This code expires in 5 minutes.`
         });
         console.log(`📧 Email sent to ${to} in ${Date.now() - start}ms (ID: ${info.messageId})`);
     } catch (error) {
