@@ -74,6 +74,9 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
     try {
         const { email, otp } = req.body;
+        if (typeof email !== "string" || typeof otp !== "string") {
+            return res.status(400).json({ message: "Invalid input types" });
+        }
         if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
 
         const record = await Otp.findOne({ email: email.toLowerCase(), otp });
@@ -95,6 +98,9 @@ exports.verifyOtp = async (req, res) => {
 exports.signup = async (req, res) => {
     try {
         const { email, password, signupToken } = req.body;
+        if (typeof email !== "string" || typeof password !== "string" || typeof signupToken !== "string") {
+            return res.status(400).json({ message: "Invalid input types" });
+        }
         if (!email || !password || !signupToken) {
             return res.status(400).json({ message: "Email, password, and signup token are required." });
         }
@@ -140,6 +146,9 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        if (typeof email !== "string" || typeof password !== "string") {
+            return res.status(400).json({ message: "Invalid input types" });
+        }
         if (!email || !password) return res.status(400).json({ message: "Email and password are required" });
 
         const user = await User.findOne({ email: email.toLowerCase() });
