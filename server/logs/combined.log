@@ -1041,3 +1041,4 @@
 {"level":"info","message":"::1 - - [07/Apr/2026:05:45:56 +0000] \"POST /api/send-otp HTTP/1.1\" 200 35 \"-\" \"node\"","service":"dose-backend","timestamp":"2026-04-07 11:15:56"}
 {"level":"info","message":"OTP email delivered to choosemanas@gmail.com","service":"dose-backend","timestamp":"2026-04-07 11:21:23"}
 {"level":"info","message":"::1 - - [07/Apr/2026:05:51:23 +0000] \"POST /api/send-otp HTTP/1.1\" 200 35 \"-\" \"Mozilla/5.0 (Windows NT; Windows NT 10.0; en-IN) WindowsPowerShell/5.1.26100.8115\"","service":"dose-backend","timestamp":"2026-04-07 11:21:23"}
+{"level":"info","message":"::1 - - [07/Apr/2026:06:18:30 +0000] \"GET /api/health HTTP/1.1\" 503 204 \"-\" \"node\"","service":"dose-backend","timestamp":"2026-04-07 11:48:30"}
