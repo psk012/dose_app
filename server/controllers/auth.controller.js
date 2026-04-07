@@ -77,9 +77,12 @@ exports.verifyOtp = async (req, res) => {
         if (typeof email !== "string" || typeof otp !== "string") {
             return res.status(400).json({ message: "Invalid input types" });
         }
+        if (!/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ message: "Invalid OTP format" });
+        }
         if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
 
-        const record = await Otp.findOne({ email: email.toLowerCase(), otp });
+        const record = await Otp.findOne({ email: email.toLowerCase(), otp: { $eq: otp } });
         if (!record) {
             return res.status(400).json({ message: "Invalid or expired OTP" });
         }
