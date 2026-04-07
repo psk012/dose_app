@@ -33,8 +33,11 @@ exports.sendOtp = async (req, res) => {
         const newOtp = new Otp({ email: email.toLowerCase(), otp: otpCode });
         await newOtp.save();
 
-        // Send email and wait for completion to catch errors directly
-        await sendEmail(
+        // Respond immediately — email sends in background via pre-warmed SMTP pool
+        res.status(200).json({ message: "OTP sent successfully" });
+
+        // Fire-and-forget: send email after response (errors logged server-side)
+        sendEmail(
             email, 
             "Your Manas Verification Code 💜", 
             `<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #faf9ff; border-radius: 16px; overflow: hidden; border: 1px solid #ede9ff;">
@@ -54,10 +57,8 @@ exports.sendOtp = async (req, res) => {
                     <p style="color: #b0a8c9; font-size: 11px; margin: 0;">made with care · manas</p>
                 </div>
             </div>`
-        );
-        logger.info(`OTP sent to ${email}`);
-
-        res.status(200).json({ message: "OTP sent successfully" });
+        ).then(() => logger.info(`OTP sent to ${email}`))
+         .catch((e) => logger.error(`Failed to send OTP to ${email}: ${e.message}`));
     } catch (err) {
         logger.error(`Send OTP error: ${err.message}`);
         res.status(500).json({ message: err.message || "Something went wrong sending OTP." });

@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://dose-backend-ezck.onrender.com/api";
 
 export async function apiFetch(url, options = {}, retries = 2, backoff = 500) {
-  const timeout = options.timeout || 60000; // 60s default for Render cold starts
+  const timeout = options.timeout || 15000; // 15s default — enough for Render cold starts
   
   // Do not automatically retry POST/PUT/DELETE requests
   const isIdempotent = !options.method || options.method.toUpperCase() === 'GET';
