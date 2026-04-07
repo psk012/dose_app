@@ -33,32 +33,38 @@ exports.sendOtp = async (req, res) => {
         const newOtp = new Otp({ email: email.toLowerCase(), otp: otpCode });
         await newOtp.save();
 
-        // Respond immediately — email sends in background via pre-warmed SMTP pool
-        res.status(200).json({ message: "OTP sent successfully" });
-
-        // Fire-and-forget: send email after response (errors logged server-side)
-        sendEmail(
-            email, 
-            "Your Manas Verification Code 💜", 
-            `<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #faf9ff; border-radius: 16px; overflow: hidden; border: 1px solid #ede9ff;">
-                <div style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); padding: 32px 24px; text-align: center;">
-                    <h1 style="color: #fff; margin: 0; font-size: 28px; font-weight: 600; letter-spacing: 1px;">manas</h1>
-                    <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 13px;">your mind, your space</p>
-                </div>
-                <div style="padding: 32px 28px; text-align: center;">
-                    <p style="color: #4a4458; font-size: 16px; margin: 0 0 6px; font-weight: 500;">hey, welcome to manas 💜</p>
-                    <p style="color: #7c7291; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">thank you for choosing us. here's your verification code; you're just one step away!</p>
-                    <div style="background: #fff; border: 2px solid #e4dfff; border-radius: 12px; padding: 20px; display: inline-block; margin: 0 0 24px;">
-                        <span style="font-size: 36px; font-weight: 700; letter-spacing: 10px; color: #6c5ce7;">${otpCode}</span>
+        // AWAIT the email — if SMTP fails, the user must know immediately
+        try {
+            await sendEmail(
+                email, 
+                "Your Manas Verification Code 💜", 
+                `<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #faf9ff; border-radius: 16px; overflow: hidden; border: 1px solid #ede9ff;">
+                    <div style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); padding: 32px 24px; text-align: center;">
+                        <h1 style="color: #fff; margin: 0; font-size: 28px; font-weight: 600; letter-spacing: 1px;">manas</h1>
+                        <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 13px;">your mind, your space</p>
                     </div>
-                    <p style="color: #a099b0; font-size: 12px; margin: 0;">this code expires in 5 minutes ✨</p>
-                </div>
-                <div style="background: #f3f0ff; padding: 16px 28px; text-align: center; border-top: 1px solid #ede9ff;">
-                    <p style="color: #b0a8c9; font-size: 11px; margin: 0;">made with care · manas</p>
-                </div>
-            </div>`
-        ).then(() => logger.info(`OTP sent to ${email}`))
-         .catch((e) => logger.error(`Failed to send OTP to ${email}: ${e.message}`));
+                    <div style="padding: 32px 28px; text-align: center;">
+                        <p style="color: #4a4458; font-size: 16px; margin: 0 0 6px; font-weight: 500;">hey, welcome to manas 💜</p>
+                        <p style="color: #7c7291; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">thank you for choosing us. here's your verification code; you're just one step away!</p>
+                        <div style="background: #fff; border: 2px solid #e4dfff; border-radius: 12px; padding: 20px; display: inline-block; margin: 0 0 24px;">
+                            <span style="font-size: 36px; font-weight: 700; letter-spacing: 10px; color: #6c5ce7;">${otpCode}</span>
+                        </div>
+                        <p style="color: #a099b0; font-size: 12px; margin: 0;">this code expires in 5 minutes ✨</p>
+                    </div>
+                    <div style="background: #f3f0ff; padding: 16px 28px; text-align: center; border-top: 1px solid #ede9ff;">
+                        <p style="color: #b0a8c9; font-size: 11px; margin: 0;">made with care · manas</p>
+                    </div>
+                </div>`
+            );
+            logger.info(`OTP email delivered to ${email}`);
+            res.status(200).json({ message: "OTP sent successfully" });
+        } catch (emailErr) {
+            // Email failed — tell the user so they can retry
+            logger.error(`OTP email FAILED for ${email}: ${emailErr.message}`);
+            // Clean up the OTP since we couldn't deliver it
+            await Otp.deleteMany({ email: email.toLowerCase() });
+            res.status(502).json({ message: "Failed to send OTP email. Please try again in a moment." });
+        }
     } catch (err) {
         logger.error(`Send OTP error: ${err.message}`);
         res.status(500).json({ message: err.message || "Something went wrong sending OTP." });

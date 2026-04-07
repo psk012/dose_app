@@ -72,6 +72,48 @@ app.get("/", (req, res) => {
     res.send("DOSE Backend Running 🚀");
 });
 
+// ─── HEALTH CHECK (diagnose SMTP on production) ──────
+app.get("/api/health", async (req, res) => {
+    const nodemailer = require("nodemailer");
+    const health = {
+        server: "ok",
+        timestamp: new Date().toISOString(),
+        smtp: { status: "unknown" },
+        env: {
+            EMAIL_USER: process.env.EMAIL_USER ? `set (${process.env.EMAIL_USER})` : "MISSING ❌",
+            EMAIL_PASS: process.env.EMAIL_PASS ? `set (${process.env.EMAIL_PASS.length} chars)` : "MISSING ❌",
+            SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com (default)",
+            SMTP_PORT: process.env.SMTP_PORT || "587 (default)",
+            MONGODB_URI: process.env.MONGODB_URI ? "set" : "MISSING ❌",
+            JWT_SECRET: process.env.JWT_SECRET ? "set" : "MISSING ❌",
+        }
+    };
+
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || "smtp.gmail.com",
+                port: parseInt(process.env.SMTP_PORT || "587"),
+                secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+                auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+                connectionTimeout: 8000,
+                greetingTimeout: 8000,
+            });
+            const start = Date.now();
+            await transporter.verify();
+            transporter.close();
+            health.smtp = { status: "connected", latency: `${Date.now() - start}ms` };
+        } catch (err) {
+            health.smtp = { status: "FAILED", error: err.message, code: err.code };
+        }
+    } else {
+        health.smtp = { status: "FAILED", error: "SMTP credentials not configured" };
+    }
+
+    const httpStatus = health.smtp.status === "connected" ? 200 : 503;
+    res.status(httpStatus).json(health);
+});
+
 // ─── AI GENERATION (PLACEHOLDER) ─────────────────────
 app.post("/api/generate", auth, aiLimiter, async (req, res) => {
     // Placeholder for AI feature (e.g., using OpenAI or Gemini)

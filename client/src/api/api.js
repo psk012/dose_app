@@ -50,9 +50,16 @@ export async function sendOtp(email) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
+    timeout: 30000, // 30s — backend now awaits real SMTP delivery
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Failed to send OTP");
+  if (!res.ok) {
+    // 502 = email delivery failed on server side
+    if (res.status === 502) {
+      throw new Error("Email delivery failed. Please try again in a moment.");
+    }
+    throw new Error(data.message || "Failed to send OTP");
+  }
   return data;
 }
 

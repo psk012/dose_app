@@ -1,47 +1,124 @@
 const nodemailer = require("nodemailer");
 const logger = require("../logger");
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: process.env.SMTP_PORT || 587,
-    secure: process.env.SMTP_PORT == 465,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    // Keep the connection alive so subsequent emails don't re-handshake
-    pool: true,
-    maxConnections: 3,
-    maxMessages: 100,
-});
-
-// Pre-warm: verify SMTP credentials on startup so the connection is ready
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    transporter.verify()
-        .then(() => console.log("✅ SMTP connection verified and ready"))
-        .catch((err) => console.error("❌ SMTP connection failed:", err.message));
+// ─── SMTP Configuration ─────────────────────────────
+// Create a fresh transporter for each email to avoid stale pool connections
+// on serverless/cold-start environments like Render free tier.
+function createTransporter() {
+    return nodemailer.createTransport({
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+        },
+        // Timeouts to prevent hanging on Render
+        connectionTimeout: 10000,  // 10s to establish connection
+        greetingTimeout: 10000,    // 10s for SMTP greeting
+        socketTimeout: 15000,      // 15s for socket operations
+    });
 }
 
+// Pre-warm: verify SMTP credentials on startup
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    const testTransporter = createTransporter();
+    testTransporter.verify()
+        .then(() => {
+            console.log("✅ SMTP connection verified and ready");
+            console.log(`   Host: ${process.env.SMTP_HOST || "smtp.gmail.com"}`);
+            console.log(`   Port: ${process.env.SMTP_PORT || "587"}`);
+            console.log(`   User: ${process.env.EMAIL_USER}`);
+            testTransporter.close();
+        })
+        .catch((err) => {
+            console.error("❌ SMTP connection FAILED on startup:", err.message);
+            console.error("   → OTP emails WILL NOT work until this is fixed.");
+            console.error("   → Check EMAIL_USER and EMAIL_PASS environment variables.");
+            if (err.code === "EAUTH") {
+                console.error("   → AUTH ERROR: Make sure you're using a Gmail App Password (16 lowercase chars).");
+                console.error("   → Generate one at: https://myaccount.google.com/apppasswords");
+            }
+            testTransporter.close();
+        });
+} else {
+    console.error("❌ SMTP credentials missing! EMAIL_USER and/or EMAIL_PASS not set.");
+    console.error("   → Set these in your .env file or Render Environment Variables.");
+}
+
+/**
+ * Send an email with robust error handling and retry logic.
+ * Creates a fresh SMTP connection each time to avoid stale pools on serverless.
+ */
 async function sendEmail(to, subject, html) {
+    // 1. Validate credentials exist
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.warn("⚠️ SMTP credentials missing in .env! Email not sent.");
-        throw new Error("SMTP credentials missing on server. Check Environment Variables.");
+        const msg = "SMTP credentials missing. Set EMAIL_USER and EMAIL_PASS.";
+        console.error(`❌ sendEmail() failed: ${msg}`);
+        logger.error(msg);
+        throw new Error(msg);
     }
+
+    // 2. Create fresh transporter (avoids stale pool issue on Render)
+    const transporter = createTransporter();
     
+    // 3. Extract plain text OTP for text fallback
+    const otpMatch = html.match(/>(\d{4})</);
+    const textFallback = otpMatch 
+        ? `Your Manas Verification Code is: ${otpMatch[1]}. This code expires in 5 minutes.`
+        : `Manas: ${subject}`;
+
+    // 4. Send with detailed logging
+    const start = Date.now();
     try {
-        const start = Date.now();
+        console.log(`📧 Attempting to send email to ${to}...`);
+        
         const info = await transporter.sendMail({
             from: `"Manas" <${process.env.EMAIL_USER}>`,
-            to, 
-            subject, 
+            to,
+            subject,
             html,
-            text: `Your Manas Verification Code is: ${html.match(/>(\d{4})</)?.[1] || "check the HTML version"}. This code expires in 5 minutes.`
+            text: textFallback,
         });
-        console.log(`📧 Email sent to ${to} in ${Date.now() - start}ms (ID: ${info.messageId})`);
+        
+        const elapsed = Date.now() - start;
+        console.log(`✅ Email sent to ${to} in ${elapsed}ms`);
+        console.log(`   Message ID: ${info.messageId}`);
+        console.log(`   SMTP Response: ${info.response}`);
+        console.log(`   Accepted: ${JSON.stringify(info.accepted)}`);
+        console.log(`   Rejected: ${JSON.stringify(info.rejected)}`);
+        
+        if (info.rejected && info.rejected.length > 0) {
+            logger.error(`Email rejected for: ${info.rejected.join(", ")}`);
+        }
+        
+        return info;
     } catch (error) {
-        logger.error("Failed to send email", { error });
-        console.error("Failed to send email:", error);
-        throw new Error(`SMTP Error: ${error.message}`);
+        const elapsed = Date.now() - start;
+        console.error(`❌ Email FAILED to ${to} after ${elapsed}ms: ${error.message}`);
+        console.error(`   Error code: ${error.code}`);
+        console.error(`   Error command: ${error.command}`);
+        
+        // Log specific error types for debugging
+        if (error.code === "EAUTH") {
+            console.error("   → Authentication failed. Check EMAIL_USER and EMAIL_PASS.");
+            console.error("   → If using Gmail, you need a 16-char App Password.");
+        } else if (error.code === "ESOCKET" || error.code === "ETIMEDOUT") {
+            console.error("   → Network/timeout error. SMTP server may be unreachable.");
+            console.error("   → Check if your hosting provider blocks outbound SMTP.");
+        } else if (error.code === "ECONNECTION") {
+            console.error("   → Connection refused. Check SMTP_HOST and SMTP_PORT.");
+        }
+        
+        logger.error(`Failed to send email to ${to}`, { 
+            error: error.message, 
+            code: error.code,
+            elapsed 
+        });
+        
+        throw new Error(`Email delivery failed: ${error.message}`);
+    } finally {
+        transporter.close();
     }
 }
 
