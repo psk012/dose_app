@@ -72,40 +72,21 @@ app.get("/", (req, res) => {
     res.send("DOSE Backend Running 🚀");
 });
 
-// ─── HEALTH CHECK (diagnose SMTP on production) ──────
+// ─── HEALTH CHECK (diagnose production) ──────
 app.get("/api/health", async (req, res) => {
-    const nodemailer = require("nodemailer");
     const health = {
         server: "ok",
         timestamp: new Date().toISOString(),
-        smtp: { status: "unknown" },
+        emailProvider: "resend",
         env: {
-            EMAIL_USER: process.env.EMAIL_USER ? `set` : "MISSING",
+            RESEND_API_KEY: process.env.RESEND_API_KEY ? "set" : "MISSING ❌",
+            EMAIL_FROM: process.env.EMAIL_FROM ? `set (${process.env.EMAIL_FROM})` : "Using default onboarding domain",
+            MONGODB_URI: process.env.MONGODB_URI ? "set" : "MISSING ❌",
+            JWT_SECRET: process.env.JWT_SECRET ? "set" : "MISSING ❌",
         }
     };
 
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        // Test port 465 (SMTPS) because Render often blocks 587
-        try {
-            const transporter = nodemailer.createTransport({
-                host: "smtp.gmail.com",
-                port: 465,
-                secure: true,
-                auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-                connectionTimeout: 8000,
-            });
-            const start = Date.now();
-            await transporter.verify();
-            transporter.close();
-            health.smtp = { status: "connected_on_465", latency: `${Date.now() - start}ms` };
-        } catch (err465) {
-            health.smtp = { status: "FAILED_465", error: err465.message };
-        }
-    } else {
-        health.smtp = { status: "FAILED", error: "SMTP credentials not configured" };
-    }
-
-    const httpStatus = health.smtp.status === "connected_on_465" ? 200 : 503;
+    const httpStatus = process.env.RESEND_API_KEY ? 200 : 503;
     res.status(httpStatus).json(health);
 });
 
