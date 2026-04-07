@@ -18,7 +18,7 @@ function Signup() {
 
     // UI States
     const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [loadingAction, setLoadingAction] = useState(""); // "" | "sendOtp" | "verifyOtp" | "signup" | "setupSafetyNet"
     const [resendTimer, setResendTimer] = useState(30);
     const [canResend, setCanResend] = useState(false);
     const navigate = useNavigate();
@@ -41,7 +41,7 @@ function Signup() {
             return;
         }
         setError("");
-        setLoading(true);
+        setLoadingAction("sendOtp");
         try {
             await sendOtp(email);
             setStep(2);
@@ -50,7 +50,7 @@ function Signup() {
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            setLoadingAction("");
         }
     };
 
@@ -60,7 +60,7 @@ function Signup() {
             return;
         }
         setError("");
-        setLoading(true);
+        setLoadingAction("verifyOtp");
         try {
             const data = await verifyOtp(email, otp);
             setSignupToken(data.signupToken);
@@ -68,7 +68,7 @@ function Signup() {
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            setLoadingAction("");
         }
     };
 
@@ -78,7 +78,7 @@ function Signup() {
             return;
         }
         setError("");
-        setLoading(true);
+        setLoadingAction("signup");
         try {
             await signupUser(email, password, signupToken);
             // After account creation, log in to get a token for SafetyNet setup
@@ -88,7 +88,7 @@ function Signup() {
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            setLoadingAction("");
         }
     };
 
@@ -128,14 +128,14 @@ function Signup() {
         }
 
         setError("");
-        setLoading(true);
+        setLoadingAction("setupSafetyNet");
         try {
             await setupSafetyNet(tempToken, validContacts);
             navigate("/login");
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            setLoadingAction("");
         }
     };
 
@@ -145,7 +145,7 @@ function Signup() {
 
     const handleKeyDown = (e, callback) => {
         if (e.key === "Enter") {
-            if (!loading) callback();
+            if (!loadingAction) callback();
         }
     };
 
@@ -195,7 +195,7 @@ function Signup() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 onKeyDown={(e) => handleKeyDown(e, handleSendOtp)}
-                                disabled={loading}
+                                disabled={loadingAction === "sendOtp"}
                             />
                         </div>
                     )}
@@ -214,7 +214,7 @@ function Signup() {
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                                 onKeyDown={(e) => handleKeyDown(e, handleVerifyOtp)}
-                                disabled={loading}
+                                disabled={loadingAction === "verifyOtp"}
                             />
                             
                             <div className="flex justify-between items-center mt-3">
@@ -222,10 +222,10 @@ function Signup() {
                                 
                                 {canResend ? (
                                     <p 
-                                        onClick={!loading ? handleSendOtp : undefined} 
-                                        className={`text-xs font-semibold ${loading ? 'text-on-surface-variant/40 cursor-not-allowed' : 'text-primary cursor-pointer hover:underline'}`}
+                                        onClick={loadingAction !== "sendOtp" ? handleSendOtp : undefined} 
+                                        className={`text-xs font-semibold ${loadingAction === "sendOtp" ? 'text-on-surface-variant/40 cursor-not-allowed' : 'text-primary cursor-pointer hover:underline'}`}
                                     >
-                                        {loading ? "Sending..." : "Resend OTP"}
+                                        {loadingAction === "sendOtp" ? "Sending..." : "Resend OTP"}
                                     </p>
                                 ) : (
                                     <p className="text-xs text-on-surface-variant/60 font-mono">
@@ -249,7 +249,7 @@ function Signup() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 onKeyDown={(e) => handleKeyDown(e, handleSignup)}
-                                disabled={loading}
+                                disabled={loadingAction === "signup"}
                             />
                             
                             <div className="p-4 bg-surface-container-low rounded-xl text-sm border border-outline/10 shadow-sm">
@@ -309,7 +309,7 @@ function Signup() {
                                         className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/50 rounded-xl text-on-surface text-sm placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
                                         value={contact.name}
                                         onChange={(e) => handleContactChange(index, "name", e.target.value)}
-                                        disabled={loading}
+                                        disabled={loadingAction === "setupSafetyNet"}
                                     />
                                     <input
                                         type="email"
@@ -317,7 +317,7 @@ function Signup() {
                                         className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/50 rounded-xl text-on-surface text-sm placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
                                         value={contact.email}
                                         onChange={(e) => handleContactChange(index, "email", e.target.value)}
-                                        disabled={loading}
+                                        disabled={loadingAction === "setupSafetyNet"}
                                     />
                                 </div>
                             ))}
@@ -326,6 +326,7 @@ function Signup() {
                                 <button
                                     onClick={handleAddContact}
                                     className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/40 rounded-2xl text-on-surface-variant/60 text-sm font-medium hover:border-primary/30 hover:text-primary/70 transition-all cursor-pointer"
+                                    disabled={loadingAction === "setupSafetyNet"}
                                 >
                                     <span className="material-symbols-outlined text-lg">add</span>
                                     Add another contact
@@ -346,33 +347,33 @@ function Signup() {
                 {step === 1 && (
                     <button
                         onClick={handleSendOtp}
-                        disabled={loading}
+                        disabled={loadingAction === "sendOtp"}
                         className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                        {loading ? "Sending OTP..." : "Verify Email"}
-                        {!loading && <span className="material-symbols-outlined">mail</span>}
+                        {loadingAction === "sendOtp" ? "Sending OTP..." : "Verify Email"}
+                        {loadingAction !== "sendOtp" && <span className="material-symbols-outlined">mail</span>}
                     </button>
                 )}
 
                 {step === 2 && (
                     <button
                         onClick={handleVerifyOtp}
-                        disabled={loading}
+                        disabled={loadingAction === "verifyOtp"}
                         className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                        {loading ? "Verifying..." : "Submit OTP"}
-                        {!loading && <span className="material-symbols-outlined">check_circle</span>}
+                        {loadingAction === "verifyOtp" ? "Verifying..." : "Submit OTP"}
+                        {loadingAction !== "verifyOtp" && <span className="material-symbols-outlined">check_circle</span>}
                     </button>
                 )}
 
                 {step === 3 && (
                     <button
                         onClick={handleSignup}
-                        disabled={loading || !isPasswordValid}
+                        disabled={loadingAction === "signup" || !isPasswordValid}
                         className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                        {loading ? "Creating account..." : "Create Account"}
-                        {!loading && <span className="material-symbols-outlined">person_add</span>}
+                        {loadingAction === "signup" ? "Creating account..." : "Create Account"}
+                        {loadingAction !== "signup" && <span className="material-symbols-outlined">person_add</span>}
                     </button>
                 )}
 
@@ -380,15 +381,15 @@ function Signup() {
                     <div className="space-y-3">
                         <button
                             onClick={handleSafetyNetSetup}
-                            disabled={loading}
+                            disabled={loadingAction === "setupSafetyNet"}
                             className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
-                            {loading ? "Setting up..." : "Complete Setup"}
-                            {!loading && <span className="material-symbols-outlined">shield_with_heart</span>}
+                            {loadingAction === "setupSafetyNet" ? "Setting up..." : "Complete Setup"}
+                            {loadingAction !== "setupSafetyNet" && <span className="material-symbols-outlined">shield_with_heart</span>}
                         </button>
                         <button
                             onClick={handleSkipSafetyNet}
-                            disabled={loading}
+                            disabled={loadingAction !== ""}
                             className="w-full py-3 text-on-surface-variant/70 text-sm font-medium hover:text-on-surface-variant transition-colors cursor-pointer"
                         >
                             Skip for now — I'll set this up later

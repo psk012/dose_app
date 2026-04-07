@@ -1,7 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://dose-backend-ezck.onrender.com/api";
 
 export async function apiFetch(url, options = {}, retries = 2, backoff = 500) {
-  const timeout = options.timeout || 25000; // 25s default to prevent email SMTP timeouts
+  const timeout = options.timeout || 60000; // 60s default for Render cold starts
+  
+  // Do not automatically retry POST/PUT/DELETE requests
+  const isIdempotent = !options.method || options.method.toUpperCase() === 'GET';
+  const effectiveRetries = isIdempotent ? retries : 0;
   
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -12,9 +16,9 @@ export async function apiFetch(url, options = {}, retries = 2, backoff = 500) {
     return response;
   } catch (error) {
     clearTimeout(id);
-    if (retries > 0 && (error.name === 'AbortError' || error.message.includes('fetch'))) {
+    if (effectiveRetries > 0 && (error.name === 'AbortError' || error.message.includes('fetch'))) {
       await new Promise((resolve) => setTimeout(resolve, backoff));
-      return apiFetch(url, options, retries - 1, backoff * 2);
+      return apiFetch(url, options, effectiveRetries - 1, backoff * 2);
     }
     if (error.name === 'AbortError') {
       throw new Error("Request timed out. Please try again.");
