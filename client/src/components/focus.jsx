@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { logFocusSession } from "../api/api";
-import AmbientAudio, { AUDIO_TRACKS } from "./ambientAudio";
+import AmbientAudio from "./ambientAudio";
+import { AUDIO_TRACKS } from "./audioTracks";
 
 // Realistic SVG Lotus flower that blooms organically
 function LotusFlower({ progress }) {
@@ -111,6 +112,8 @@ function Focus() {
     const [timeLeft, setTimeLeft] = useState(0);
     const [totalTime, setTotalTime] = useState(0);
     const [showSettings, setShowSettings] = useState(false);
+    const [audioError, setAudioError] = useState("");
+    const [audioStatus, setAudioStatus] = useState("idle");
 
     const intervalRef = useRef(null);
     const ambientRef = useRef(null);
@@ -120,6 +123,27 @@ function Focus() {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
+    }, []);
+
+    const handleWorkComplete = useCallback(async () => {
+        if (ambientRef.current) ambientRef.current.pause();
+
+        // Log session to backend
+        try {
+            await logFocusSession(token, workMinutes, breakMinutes);
+        } catch (err) {
+            console.error("Failed to log session:", err);
+        }
+
+        // Start break
+        const breakSeconds = breakMinutes * 60;
+        setTimeLeft(breakSeconds);
+        setTotalTime(breakSeconds);
+        setMode("break");
+    }, [breakMinutes, token, workMinutes]);
+
+    const handleBreakComplete = useCallback(() => {
+        setMode("complete");
     }, []);
 
     // Timer countdown
@@ -142,34 +166,21 @@ function Focus() {
         }, 1000);
 
         return () => clearInterval(intervalRef.current);
-    }, [mode]);
+    }, [handleBreakComplete, handleWorkComplete, mode]);
 
-    function startWork() {
+    async function startWork() {
+        setAudioError("");
+
+        const audioStart = audioTrackId !== "none" && ambientRef.current
+            ? ambientRef.current.play(audioTrackId)
+            : Promise.resolve({ ok: true });
+
         const totalSeconds = workMinutes * 60;
         setTimeLeft(totalSeconds);
         setTotalTime(totalSeconds);
         setMode("working");
-        // Trigger audio from user gesture (tap); required for mobile browsers
-        if (ambientRef.current) ambientRef.current.userPlay();
-    }
 
-    async function handleWorkComplete() {
-        // Log session to backend
-        try {
-            await logFocusSession(token, workMinutes, breakMinutes);
-        } catch (err) {
-            console.error("Failed to log session:", err);
-        }
-
-        // Start break
-        const breakSeconds = breakMinutes * 60;
-        setTimeLeft(breakSeconds);
-        setTotalTime(breakSeconds);
-        setMode("break");
-    }
-
-    function handleBreakComplete() {
-        setMode("complete");
+        await audioStart;
     }
 
     function resetTimer() {
@@ -177,7 +188,8 @@ function Focus() {
         setMode("idle");
         setTimeLeft(0);
         setTotalTime(0);
-        if (ambientRef.current) ambientRef.current.userStop();
+        setAudioStatus("idle");
+        if (ambientRef.current) ambientRef.current.stop();
     }
 
     // Progress calculation
@@ -251,7 +263,10 @@ function Focus() {
                         <label className="text-sm text-on-surface">Ambient noise</label>
                         <select
                             value={audioTrackId}
-                            onChange={(e) => setAudioTrackId(e.target.value)}
+                            onChange={(e) => {
+                                setAudioError("");
+                                setAudioTrackId(e.target.value);
+                            }}
                             className="bg-surface-container-high hover:bg-outline-variant transition-colors text-on-surface rounded-full px-3 py-1 text-sm outline-none cursor-pointer"
                         >
                             {AUDIO_TRACKS.map(track => (
@@ -262,7 +277,22 @@ function Focus() {
                 </div>
             )}
 
-            <AmbientAudio ref={ambientRef} isPlaying={mode === "working"} trackId={audioTrackId} />
+            <AmbientAudio
+                ref={ambientRef}
+                isPlaying={mode === "working"}
+                trackId={audioTrackId}
+                onStatusChange={(status) => {
+                    setAudioStatus(status);
+                    if (status === "playing") setAudioError("");
+                }}
+                onError={(message) => setAudioError(message)}
+            />
+
+            {audioError && (
+                <p role="status" className="mb-4 rounded-xl border border-error-container bg-error-container/30 px-4 py-3 text-sm text-on-error-container leading-relaxed">
+                    {audioError}
+                </p>
+            )}
 
             {/* Idle state */}
             {mode === "idle" && (
@@ -292,6 +322,11 @@ function Focus() {
                         <p className="font-headline italic text-primary text-sm">
                             Growing your lotus...
                         </p>
+                        {audioTrackId !== "none" && audioStatus === "playing" && (
+                            <p className="text-xs text-on-surface-variant/70">
+                                Ambient sound is playing.
+                            </p>
+                        )}
                     </div>
                     <button
                         onClick={resetTimer}

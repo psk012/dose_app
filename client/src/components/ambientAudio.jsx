@@ -1,66 +1,183 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useCallback, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
+import { getAudioTrack } from "./audioTracks";
 
-export const AUDIO_TRACKS = [
-    { id: "none", name: "No Sound", url: "" },
-    { id: "rain", name: "Gentle Rain", url: "/audio/rain.mp3" },
-    { id: "forest", name: "Deep Forest", url: "/audio/forest.mp3" },
-    { id: "fireplace", name: "Fireplace", url: "/audio/fireplace.mp3" },
-    { id: "white_noise", name: "White Noise", url: "/audio/white_noise.mp3" },
-];
+let activeAmbientAudio = null;
 
-const AmbientAudio = forwardRef(function AmbientAudio({ isPlaying, trackId }, ref) {
+function resolvePublicAudioUrl(url) {
+    if (!url || typeof window === "undefined") return "";
+    return new URL(url, window.location.origin).href;
+}
+
+function getPlaybackErrorMessage(error) {
+    if (error?.name === "NotAllowedError") {
+        return "Your browser blocked the ambient sound. Tap Start Focus again to allow audio.";
+    }
+
+    if (error?.name === "NotSupportedError") {
+        return "This browser could not read the selected ambient sound file.";
+    }
+
+    return "Ambient sound could not start. Please try again or choose another sound.";
+}
+
+const AmbientAudio = forwardRef(function AmbientAudio({
+    isPlaying = false,
+    trackId = "none",
+    volume = 0.45,
+    onStatusChange,
+    onError,
+}, ref) {
     const audioRef = useRef(null);
+    const trackIdRef = useRef(trackId);
+    const volumeRef = useRef(volume);
 
-    // Expose a method so the parent can trigger play from a user gesture (tap/click)
-    // This satisfies mobile browser autoplay policies
-    useImperativeHandle(ref, () => ({
-        userPlay() {
-            const audio = audioRef.current;
-            if (!audio || trackId === "none") return;
-            audio.load();
-            const p = audio.play();
-            if (p) p.catch(() => {});
-        },
-        userStop() {
-            const audio = audioRef.current;
-            if (audio) audio.pause();
+    const emitStatus = useCallback((status) => {
+        onStatusChange?.(status);
+    }, [onStatusChange]);
+
+    const reportError = useCallback((error) => {
+        const message = getPlaybackErrorMessage(error);
+        console.error("Ambient audio playback failed:", error);
+        onError?.(message, error);
+        emitStatus("error");
+    }, [emitStatus, onError]);
+
+    const getAudioElement = useCallback(() => {
+        if (typeof Audio === "undefined") return null;
+
+        if (!audioRef.current) {
+            const audio = new Audio();
+            audio.loop = true;
+            audio.preload = "auto";
+            audioRef.current = audio;
         }
-    }));
 
-    // Sync play/pause state with isPlaying prop
-    useEffect(() => {
+        return audioRef.current;
+    }, []);
+
+    const pauseOtherAmbientAudio = useCallback((audio) => {
+        if (activeAmbientAudio && activeAmbientAudio !== audio) {
+            activeAmbientAudio.pause();
+            activeAmbientAudio.currentTime = 0;
+        }
+
+        activeAmbientAudio = audio;
+    }, []);
+
+    const pause = useCallback(() => {
         const audio = audioRef.current;
         if (!audio) return;
 
-        if (isPlaying && trackId !== "none") {
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                    // Autoplay blocked; will be unlocked via userPlay() from a tap
-                });
-            }
-        } else {
-            audio.pause();
+        audio.pause();
+        if (activeAmbientAudio === audio) {
+            activeAmbientAudio = null;
         }
-    }, [isPlaying, trackId]);
 
-    // Reload source when track changes mid-session
-    useEffect(() => {
+        emitStatus("paused");
+    }, [emitStatus]);
+
+    const stop = useCallback(() => {
         const audio = audioRef.current;
-        if (audio && trackId !== "none") {
-            audio.load();
-            if (isPlaying) {
-                const p = audio.play();
-                if (p) p.catch(() => {});
-            }
+        if (!audio) return;
+
+        audio.pause();
+        audio.currentTime = 0;
+        if (activeAmbientAudio === audio) {
+            activeAmbientAudio = null;
         }
+
+        emitStatus("idle");
+    }, [emitStatus]);
+
+    const play = useCallback(async (nextTrackId = trackIdRef.current) => {
+        const track = getAudioTrack(nextTrackId);
+
+        if (!track || track.id === "none" || !track.url) {
+            stop();
+            return { ok: false, reason: "no-track" };
+        }
+
+        const audio = getAudioElement();
+        if (!audio) {
+            const error = new Error("Audio is not available in this browser context.");
+            reportError(error);
+            return { ok: false, error };
+        }
+
+        pauseOtherAmbientAudio(audio);
+        audio.loop = true;
+        audio.preload = "auto";
+        audio.volume = volumeRef.current;
+
+        const nextSrc = resolvePublicAudioUrl(track.url);
+        if (audio.src !== nextSrc) {
+            audio.pause();
+            audio.src = nextSrc;
+            audio.load();
+        }
+
+        try {
+            emitStatus("loading");
+            await audio.play();
+            emitStatus("playing");
+            return { ok: true };
+        } catch (error) {
+            if (activeAmbientAudio === audio) {
+                activeAmbientAudio = null;
+            }
+
+            audio.pause();
+            reportError(error);
+            return { ok: false, error };
+        }
+    }, [emitStatus, getAudioElement, pauseOtherAmbientAudio, reportError, stop]);
+
+    useImperativeHandle(ref, () => ({
+        play,
+        pause,
+        stop,
+        userPlay: play,
+        userStop: stop,
+        getAudioElement: () => audioRef.current,
+    }), [pause, play, stop]);
+
+    useEffect(() => {
+        trackIdRef.current = trackId;
     }, [trackId]);
 
-    const track = AUDIO_TRACKS.find(t => t.id === trackId);
+    useEffect(() => {
+        volumeRef.current = volume;
+        if (audioRef.current) {
+            audioRef.current.volume = volume;
+        }
+    }, [volume]);
 
-    if (!track || track.id === "none") return null;
+    useEffect(() => {
+        if (trackId === "none") {
+            stop();
+            return;
+        }
 
-    return <audio ref={audioRef} src={track.url} loop preload="auto" />;
+        if (!isPlaying) {
+            pause();
+        }
+    }, [isPlaying, pause, stop, trackId]);
+
+    useEffect(() => {
+        return () => {
+            const audio = audioRef.current;
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+                if (activeAmbientAudio === audio) {
+                    activeAmbientAudio = null;
+                }
+            }
+            audioRef.current = null;
+        };
+    }, []);
+
+    return null;
 });
 
 export default AmbientAudio;
