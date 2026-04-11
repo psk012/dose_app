@@ -21,7 +21,7 @@ const featureCards = [
     },
     {
         title: "Focus Mode",
-        caption: "Stay with one thing. Just for a while.",
+        caption: "Sshhh... Focus😇",
         icon: "self_improvement",
         route: "/focus",
         iconClass: "bg-secondary-container/50 text-secondary group-hover:bg-secondary group-hover:text-on-secondary",
@@ -69,13 +69,13 @@ function Home() {
                             Would you like to start your session with a 30-second breathing exercise to center yourself?
                         </p>
                         <div className="flex flex-col gap-3">
-                            <button 
+                            <button
                                 onClick={() => navigate("/reset")}
                                 className="w-full bg-primary-container text-on-primary-container rounded-full py-3.5 font-bold hover:shadow-md transition-all active:scale-95"
                             >
                                 Yes, let's breathe
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setShowResetPrompt(false)}
                                 className="w-full bg-transparent text-on-surface-variant rounded-full py-3.5 font-medium border border-outline-variant/50 hover:bg-surface-container-high transition-all active:scale-95"
                             >
