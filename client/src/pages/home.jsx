@@ -4,6 +4,45 @@ import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/navbar";
 import manasLogo from "../assets/manas-logo.png";
 
+const featureCards = [
+    {
+        title: "Brain dump",
+        caption: "Let out everything on your mind. It disappears instantly.",
+        icon: "air",
+        route: "/clear-mind",
+        iconClass: "bg-primary-container/50 text-primary group-hover:bg-primary group-hover:text-on-primary",
+    },
+    {
+        title: "Journal",
+        caption: "A space to understand yourself.",
+        icon: "edit_note",
+        route: "/journal",
+        iconClass: "bg-tertiary-container/50 text-tertiary group-hover:bg-tertiary group-hover:text-on-tertiary",
+    },
+    {
+        title: "Focus Mode",
+        caption: "Stay with one thing. Just for a while.",
+        icon: "self_improvement",
+        route: "/focus",
+        iconClass: "bg-secondary-container/50 text-secondary group-hover:bg-secondary group-hover:text-on-secondary",
+    },
+    {
+        title: "Mood Check",
+        caption: "Pause. Check in with yourself.",
+        icon: "favorite",
+        route: "/insights",
+        iconClass: "bg-error-container/50 text-error group-hover:bg-error group-hover:text-on-error",
+    },
+    {
+        title: "My Comfort Zone",
+        caption: "You don't have to go through this alone.",
+        icon: "shield_with_heart",
+        route: "/safetynet",
+        iconClass: "bg-secondary-container/50 text-secondary group-hover:bg-secondary group-hover:text-on-secondary",
+        wide: true,
+    },
+];
+
 function Home() {
     const { logout } = useAuth();
     const navigate = useNavigate();
@@ -77,72 +116,34 @@ function Home() {
                 </div>
 
                 {/* Menu Options */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <button 
-                        onClick={() => navigate("/clear-mind")}
-                        className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3 p-6 bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group"
-                    >
-                        <div className="w-12 h-12 rounded-2xl bg-primary-container/50 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors">
-                            <span className="material-symbols-outlined text-2xl">air</span>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-on-surface text-lg">Clear Mind</h3>
-                            <p className="text-sm text-on-surface-variant/80 mt-1">An instant emotional dump. Not saved.</p>
-                        </div>
-                    </button>
+                <section aria-labelledby="support-options" className="space-y-5">
+                    <div className="text-center sm:text-left">
+                        <h2 id="support-options" className="text-2xl md:text-3xl font-bold text-on-surface leading-snug">
+                            Take a moment. What do you need right now?
+                        </h2>
+                        <p className="mt-2 text-sm md:text-base text-gray-400 leading-relaxed">
+                            You don't have to do everything at once.
+                        </p>
+                    </div>
 
-                    <button 
-                        onClick={() => navigate("/journal")}
-                        className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3 p-6 bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group"
-                    >
-                        <div className="w-12 h-12 rounded-2xl bg-tertiary-container/50 text-tertiary flex items-center justify-center group-hover:bg-tertiary group-hover:text-on-tertiary transition-colors">
-                            <span className="material-symbols-outlined text-2xl">edit_note</span>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-on-surface text-lg">Journal</h3>
-                            <p className="text-sm text-on-surface-variant/80 mt-1">Reflect on your thoughts safely.</p>
-                        </div>
-                    </button>
-
-                    <button 
-                        onClick={() => navigate("/focus")}
-                        className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3 p-6 bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group"
-                    >
-                        <div className="w-12 h-12 rounded-2xl bg-secondary-container/50 text-secondary flex items-center justify-center group-hover:bg-secondary group-hover:text-on-secondary transition-colors">
-                            <span className="material-symbols-outlined text-2xl">self_improvement</span>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-on-surface text-lg">Focus Mode</h3>
-                            <p className="text-sm text-on-surface-variant/80 mt-1">Deep work and mindful productivity.</p>
-                        </div>
-                    </button>
-
-                    <button 
-                        onClick={() => navigate("/insights")}
-                        className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3 p-6 bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group"
-                    >
-                        <div className="w-12 h-12 rounded-2xl bg-error-container/50 text-error flex items-center justify-center group-hover:bg-error group-hover:text-on-error transition-colors">
-                            <span className="material-symbols-outlined text-2xl">favorite</span>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-on-surface text-lg">Mood Check</h3>
-                            <p className="text-sm text-on-surface-variant/80 mt-1">Log your feelings and view insights.</p>
-                        </div>
-                    </button>
-
-                    <button 
-                        onClick={() => navigate("/safetynet")}
-                        className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3 p-6 bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group sm:col-span-2"
-                    >
-                        <div className="w-12 h-12 rounded-2xl bg-secondary-container/50 text-secondary flex items-center justify-center group-hover:bg-secondary group-hover:text-on-secondary transition-colors">
-                            <span className="material-symbols-outlined text-2xl">shield_with_heart</span>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-on-surface text-lg">SafetyNet</h3>
-                            <p className="text-sm text-on-surface-variant/80 mt-1">Your emotional safety net. Trusted contacts watch over you.</p>
-                        </div>
-                    </button>
-                </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {featureCards.map((card) => (
+                            <button
+                                key={card.title}
+                                onClick={() => navigate(card.route)}
+                                className={`group flex min-h-40 flex-col items-center sm:items-start text-center sm:text-left gap-4 p-6 bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] transition-all duration-300 ease-out hover:scale-105 hover:shadow-[0_12px_36px_-10px_rgba(0,0,0,0.12)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${card.wide ? "sm:col-span-2" : ""}`}
+                            >
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors duration-300 ${card.iconClass}`}>
+                                    <span className="material-symbols-outlined text-2xl">{card.icon}</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-on-surface leading-tight">{card.title}</h3>
+                                    <p className="mt-2 text-sm text-gray-400 leading-relaxed">{card.caption}</p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </section>
 
                 <Navbar />
             </div>
