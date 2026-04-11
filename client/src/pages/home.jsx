@@ -37,7 +37,7 @@ const featureCards = [
         title: "My Comfort Zone",
         caption: "You don't have to go through this alone.",
         icon: "shield_with_heart",
-        route: "/safetynet",
+        route: "/comfort-zone",
         iconClass: "bg-secondary-container/50 text-secondary group-hover:bg-secondary group-hover:text-on-secondary",
         wide: true,
     },

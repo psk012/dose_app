@@ -18,8 +18,8 @@ const alertLogSchema = new mongoose.Schema({
     },
     alertType: {
         type: String,
-        enum: ["email"],
-        default: "email",
+        enum: ["email", "sms", "email_sms"],
+        default: "email_sms",
     },
     recipientCount: {
         type: Number, // Never stores who, just how many

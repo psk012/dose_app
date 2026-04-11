@@ -161,10 +161,10 @@ export async function getFocusStats(token) {
   return res.json();
 }
 
-// ─── SAFETYNET ───────────────────────────────────────
+// ─── MY COMFORT ZONE ───────────────────────────────────────
 
-export async function setupSafetyNet(token, contacts) {
-  const res = await apiFetch(`${API_BASE}/safetynet/setup`, {
+export async function setupComfortZone(token, contacts) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/setup`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -173,20 +173,103 @@ export async function setupSafetyNet(token, contacts) {
     body: JSON.stringify({ contacts }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Failed to set up SafetyNet");
+  if (!res.ok) throw new Error(data.message || "Failed to set up My Comfort Zone");
   return data;
 }
 
-export async function getSafetyNetConfig(token) {
-  const res = await apiFetch(`${API_BASE}/safetynet/config`, {
+export async function requestComfortZoneEmailOtp(token, email) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/contacts/otp/email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify({ email }),
+    timeout: 30000,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to send email code");
+  return data;
+}
+
+export async function requestComfortZonePhoneOtp(token, phone) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/contacts/otp/phone`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify({ phone }),
+    timeout: 30000,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to send phone code");
+  return data;
+}
+
+export async function verifyComfortZoneEmailOtp(token, email, otp) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/contacts/verify/email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify({ email, otp }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to verify email");
+  return data;
+}
+
+export async function verifyComfortZonePhoneOtp(token, phone, otp) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/contacts/verify/phone`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify({ phone, otp }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to verify phone");
+  return data;
+}
+
+export async function addComfortZoneContact(token, contact) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/contacts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    body: JSON.stringify(contact),
+    timeout: 30000,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to add contact");
+  return data;
+}
+
+export async function deleteComfortZoneContact(token, contactId) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/contacts/${contactId}`, {
+    method: "DELETE",
     headers: { Authorization: token },
   });
-  if (!res.ok) throw new Error("Failed to fetch SafetyNet config");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to remove contact");
+  return data;
+}
+
+export async function getComfortZoneConfig(token) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/config`, {
+    headers: { Authorization: token },
+  });
+  if (!res.ok) throw new Error("Failed to fetch My Comfort Zone config");
   return res.json();
 }
 
-export async function updateSafetyNetConfig(token, config) {
-  const res = await apiFetch(`${API_BASE}/safetynet/config`, {
+export async function updateComfortZoneConfig(token, config) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/config`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -195,12 +278,12 @@ export async function updateSafetyNetConfig(token, config) {
     body: JSON.stringify(config),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Failed to update SafetyNet");
+  if (!res.ok) throw new Error(data.message || "Failed to update My Comfort Zone");
   return data;
 }
 
-export async function updateSafetyNetContacts(token, contacts) {
-  const res = await apiFetch(`${API_BASE}/safetynet/contacts`, {
+export async function updateComfortZoneContacts(token, contacts) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/contacts`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -213,16 +296,16 @@ export async function updateSafetyNetContacts(token, contacts) {
   return data;
 }
 
-export async function getSafetyNetStatus(token) {
-  const res = await apiFetch(`${API_BASE}/safetynet/status`, {
+export async function getComfortZoneStatus(token) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/status`, {
     headers: { Authorization: token },
   });
-  if (!res.ok) throw new Error("Failed to fetch SafetyNet status");
+  if (!res.ok) throw new Error("Failed to fetch My Comfort Zone status");
   return res.json();
 }
 
-export async function pauseSafetyNet(token, days) {
-  const res = await apiFetch(`${API_BASE}/safetynet/pause`, {
+export async function pauseComfortZone(token, days) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/pause`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -231,12 +314,12 @@ export async function pauseSafetyNet(token, days) {
     body: JSON.stringify({ days }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Failed to pause SafetyNet");
+  if (!res.ok) throw new Error(data.message || "Failed to pause My Comfort Zone");
   return data;
 }
 
-export async function resumeSafetyNet(token) {
-  const res = await apiFetch(`${API_BASE}/safetynet/resume`, {
+export async function resumeComfortZone(token) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/resume`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -244,14 +327,19 @@ export async function resumeSafetyNet(token) {
     },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Failed to resume SafetyNet");
+  if (!res.ok) throw new Error(data.message || "Failed to resume My Comfort Zone");
   return data;
 }
 
-export async function getSafetyNetAuditLog(token) {
-  const res = await apiFetch(`${API_BASE}/safetynet/audit-log`, {
+export async function getComfortZoneAuditLog(token) {
+  const res = await apiFetch(`${API_BASE}/comfort-zone/audit-log`, {
     headers: { Authorization: token },
   });
   if (!res.ok) throw new Error("Failed to fetch audit log");
   return res.json();
 }
+
+
+
+
+

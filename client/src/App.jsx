@@ -10,7 +10,7 @@ import JournalPage from "./pages/journalpage";
 import FocusPage from "./pages/focuspage";
 import ClearMind from "./pages/clearMind";
 import Insights from "./pages/insights";
-import SafetyNet from "./pages/safetynet";
+import MyComfortZone from "./pages/safetynet";
 import VerifyEmail from "./pages/verifyEmail";
 import ProtectedRoute from "./components/protectedroute";
 import { useAuth } from "./context/AuthContext";
@@ -153,10 +153,19 @@ function App() {
       />
 
       <Route
+        path="/comfort-zone"
+        element={
+          <ProtectedRoute>
+            <MyComfortZone />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/safetynet"
         element={
           <ProtectedRoute>
-            <SafetyNet />
+            <MyComfortZone />
           </ProtectedRoute>
         }
       />

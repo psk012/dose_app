@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { sendOtp, verifyOtp, signupUser, loginUser, setupSafetyNet } from "../api/api";
+import { sendOtp, verifyOtp, signupUser, loginUser } from "../api/api";
 import manasBanner from "../assets/manas-banner.png";
 
 function Signup() {
-    const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password, 4: SafetyNet
+    const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password, 4: My Comfort Zone
     
     // Form States
     const [email, setEmail] = useState("");
@@ -12,13 +12,10 @@ function Signup() {
     const [password, setPassword] = useState("");
     const [signupToken, setSignupToken] = useState("");
     
-    // SafetyNet contact states
-    const [contacts, setContacts] = useState([{ name: "", email: "" }]);
-    const [tempToken, setTempToken] = useState("");
 
     // UI States
     const [error, setError] = useState("");
-    const [loadingAction, setLoadingAction] = useState(""); // "" | "sendOtp" | "verifyOtp" | "signup" | "setupSafetyNet"
+    const [loadingAction, setLoadingAction] = useState(""); // "" | "sendOtp" | "verifyOtp" | "signup" | "setupComfortZone"
     const [resendTimer, setResendTimer] = useState(30);
     const [canResend, setCanResend] = useState(false);
     const navigate = useNavigate();
@@ -55,8 +52,8 @@ function Signup() {
     };
 
     const handleVerifyOtp = async () => {
-        if (!otp.trim() || otp.length !== 4) {
-            setError("Please enter a valid 4-digit OTP");
+        if (!otp.trim() || otp.length !== 6) {
+            setError("Please enter a valid 6-digit OTP");
             return;
         }
         setError("");
@@ -81,10 +78,9 @@ function Signup() {
         setLoadingAction("signup");
         try {
             await signupUser(email, password, signupToken);
-            // After account creation, log in to get a token for SafetyNet setup
-            const loginData = await loginUser(email, password);
-            setTempToken(loginData.token);
-            setStep(4); // Advance to SafetyNet onboarding
+            // After account creation, offer My Comfort Zone setup guidance
+            await loginUser(email, password);
+            setStep(4); // Advance to My Comfort Zone onboarding
         } catch (err) {
             setError(err.message);
         } finally {
@@ -92,54 +88,11 @@ function Signup() {
         }
     };
 
-    const handleAddContact = () => {
-        if (contacts.length < 2) {
-            setContacts([...contacts, { name: "", email: "" }]);
-        }
+    const handleComfortZoneSetup = async () => {
+        navigate("/login");
     };
 
-    const handleRemoveContact = (index) => {
-        setContacts(contacts.filter((_, i) => i !== index));
-        if (contacts.length <= 1) {
-            setContacts([{ name: "", email: "" }]);
-        }
-    };
-
-    const handleContactChange = (index, field, value) => {
-        const updated = [...contacts];
-        updated[index][field] = value;
-        setContacts(updated);
-    };
-
-    const handleSafetyNetSetup = async () => {
-        // Validate contacts
-        const validContacts = contacts.filter(c => c.name.trim() && c.email.trim());
-        if (validContacts.length === 0) {
-            setError("Please add at least one contact, or skip this step");
-            return;
-        }
-
-        // Basic email validation
-        for (const c of validContacts) {
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) {
-                setError(`Invalid email: ${c.email}`);
-                return;
-            }
-        }
-
-        setError("");
-        setLoadingAction("setupSafetyNet");
-        try {
-            await setupSafetyNet(tempToken, validContacts);
-            navigate("/login");
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoadingAction("");
-        }
-    };
-
-    const handleSkipSafetyNet = () => {
+    const handleSkipComfortZone = () => {
         navigate("/login");
     };
 
@@ -150,7 +103,7 @@ function Signup() {
     };
 
     // Password Validation Specs
-    const hasMinLength = password.length >= 6;
+    const hasMinLength = password.length >= 8;
     const hasNumber = /[0-9]/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const isPasswordValid = hasMinLength && hasNumber && hasSpecialChar;
@@ -159,7 +112,7 @@ function Signup() {
         1: "Create a space for your thoughts.",
         2: `Enter the secure code sent to ${email}`,
         3: "Secure your new account with a strong password.",
-        4: "One last thing — your safety net.",
+        4: "One last thing — My Comfort Zone.",
     };
 
     return (
@@ -174,7 +127,7 @@ function Signup() {
                         <h1 className="font-handwriting text-4xl text-primary">Start your journey</h1>
                     )}
                     {step === 4 && (
-                        <h1 className="font-handwriting text-4xl text-primary">Your safety net</h1>
+                        <h1 className="font-handwriting text-4xl text-primary">My Comfort Zone</h1>
                     )}
                     <p className="font-headline italic text-on-surface-variant/80 text-sm">
                         {stepSubtext[step]}
@@ -204,11 +157,11 @@ function Signup() {
                     {step === 2 && (
                         <div>
                             <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-1.5 block">
-                                4-Digit OTP
+                                6-Digit OTP
                             </label>
                             <input
                                 type="text"
-                                maxLength="4"
+                                maxLength="6"
                                 placeholder="0000"
                                 className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface text-center tracking-widest text-xl placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
                                 value={otp}
@@ -257,7 +210,7 @@ function Signup() {
                                 <ul className="space-y-1">
                                     <li className={`flex items-center gap-2 transition-colors ${hasMinLength ? 'text-primary font-medium' : 'text-on-surface-variant/60'}`}>
                                         <span className="material-symbols-outlined text-[16px]">{hasMinLength ? 'check_circle' : 'radio_button_unchecked'}</span>
-                                        Minimum 6 characters
+                                        Minimum 8 characters
                                     </li>
                                     <li className={`flex items-center gap-2 transition-colors ${hasNumber ? 'text-primary font-medium' : 'text-on-surface-variant/60'}`}>
                                         <span className="material-symbols-outlined text-[16px]">{hasNumber ? 'check_circle' : 'radio_button_unchecked'}</span>
@@ -272,7 +225,7 @@ function Signup() {
                         </div>
                     )}
 
-                    {/* STEP 4: SafetyNet Contacts */}
+                    {/* STEP 4: My Comfort Zone */}
                     {step === 4 && (
                         <div className="space-y-4 animate-fade-in">
                             <div className="p-4 bg-primary-container/20 rounded-2xl border border-primary/10">
@@ -282,56 +235,12 @@ function Signup() {
                                     </div>
                                     <div>
                                         <p className="text-on-surface text-sm leading-relaxed">
-                                            Add 1–2 people you trust with your heart. If we ever sense you're going through a tough time, we'll gently ask them to check in — <strong>without sharing anything you've written</strong>.
+                                            My Comfort Zone lets you add trusted people after email, phone, and acceptance verification. Nothing you write is shared.
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            {contacts.map((contact, index) => (
-                                <div key={index} className="p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/40 space-y-3 relative">
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold">
-                                            Contact {index + 1}
-                                        </span>
-                                        {contacts.length > 1 && (
-                                            <button
-                                                onClick={() => handleRemoveContact(index)}
-                                                className="text-on-surface-variant/50 hover:text-error transition-colors cursor-pointer"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">close</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="Their name"
-                                        className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/50 rounded-xl text-on-surface text-sm placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
-                                        value={contact.name}
-                                        onChange={(e) => handleContactChange(index, "name", e.target.value)}
-                                        disabled={loadingAction === "setupSafetyNet"}
-                                    />
-                                    <input
-                                        type="email"
-                                        placeholder="their@email.com"
-                                        className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/50 rounded-xl text-on-surface text-sm placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
-                                        value={contact.email}
-                                        onChange={(e) => handleContactChange(index, "email", e.target.value)}
-                                        disabled={loadingAction === "setupSafetyNet"}
-                                    />
-                                </div>
-                            ))}
-
-                            {contacts.length < 2 && (
-                                <button
-                                    onClick={handleAddContact}
-                                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/40 rounded-2xl text-on-surface-variant/60 text-sm font-medium hover:border-primary/30 hover:text-primary/70 transition-all cursor-pointer"
-                                    disabled={loadingAction === "setupSafetyNet"}
-                                >
-                                    <span className="material-symbols-outlined text-lg">add</span>
-                                    Add another contact
-                                </button>
-                            )}
                         </div>
                     )}
                 </div>
@@ -380,15 +289,15 @@ function Signup() {
                 {step === 4 && (
                     <div className="space-y-3">
                         <button
-                            onClick={handleSafetyNetSetup}
-                            disabled={loadingAction === "setupSafetyNet"}
+                            onClick={handleComfortZoneSetup}
+                            disabled={loadingAction === "setupComfortZone"}
                             className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
-                            {loadingAction === "setupSafetyNet" ? "Setting up..." : "Complete Setup"}
-                            {loadingAction !== "setupSafetyNet" && <span className="material-symbols-outlined">shield_with_heart</span>}
+                            {loadingAction === "setupComfortZone" ? "Setting up..." : "Complete Setup"}
+                            {loadingAction !== "setupComfortZone" && <span className="material-symbols-outlined">shield_with_heart</span>}
                         </button>
                         <button
-                            onClick={handleSkipSafetyNet}
+                            onClick={handleSkipComfortZone}
                             disabled={loadingAction !== ""}
                             className="w-full py-3 text-on-surface-variant/70 text-sm font-medium hover:text-on-surface-variant transition-colors cursor-pointer"
                         >
@@ -414,3 +323,4 @@ function Signup() {
 }
 
 export default Signup;
+

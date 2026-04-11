@@ -58,9 +58,23 @@ const aiLimiter = rateLimit({
     legacyHeaders: false
 });
 
+const contactOtpLimiter = rateLimit({
+    skip: skipLocalhost,
+    windowMs: 10 * 60 * 1000,
+    max: 6,
+    handler: (req, res, next, options) => {
+        logger.warn(`Contact OTP rate limit exceeded by IP: ${req.ip}`);
+        res.status(options.statusCode).send(options.message);
+    },
+    message: { message: "Too many verification attempts. Please wait before trying again." },
+    standardHeaders: false,
+    legacyHeaders: false
+});
+
 module.exports = {
     authLimiter,
     signupLimiter,
     apiLimiter,
-    aiLimiter
+    aiLimiter,
+    contactOtpLimiter
 };

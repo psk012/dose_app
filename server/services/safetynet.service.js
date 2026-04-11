@@ -18,6 +18,7 @@ const MoodEntry = require("../models/moodEntry");
 const { aggregateEmotions } = require("./emotionExtractor");
 const { decrypt } = require("../utils/encryption");
 const sendEmail = require("../utils/sendEmail");
+const sendSms = require("../utils/sendSms");
 
 const NEGATIVE_MOODS = new Set(["heavy", "anxious", "overwhelmed", "numb"]);
 const ANALYSIS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -347,15 +348,19 @@ async function shouldTriggerAlert(userId, currentAssessment) {
 // ─── ALERT DISPATCH ─────────────────────────────────
 
 async function triggerAlert(userId, config, assessment) {
-    if (!config.trustedContacts || config.trustedContacts.length === 0) return;
+    const verifiedAcceptedContacts = (config.trustedContacts || []).filter(
+        (contact) => contact.isEmailVerified && contact.isPhoneVerified && contact.isAccepted
+    );
+    if (verifiedAcceptedContacts.length === 0) return;
 
     const cooldownExpires = new Date(Date.now() + ALERT_COOLDOWN_MS);
     let sentCount = 0;
     let failCount = 0;
 
-    for (const contact of config.trustedContacts) {
+    for (const contact of verifiedAcceptedContacts) {
         try {
             const contactEmail = decrypt(contact.emailEncrypted);
+            const contactPhone = decrypt(contact.phoneEncrypted);
             const contactName = decrypt(contact.nameEncrypted);
 
             await sendEmail(
@@ -363,11 +368,15 @@ async function triggerAlert(userId, config, assessment) {
                 "A Gentle Check-In Reminder 💜",
                 buildAlertEmailHTML(contactName)
             );
+            await sendSms(
+                contactPhone,
+                "They may be going through a difficult emotional phase. Consider checking in."
+            );
 
             sentCount++;
-        } catch (emailErr) {
+        } catch (deliveryErr) {
             failCount++;
-            logger.error("SafetyNet alert email failed", { error: emailErr.message });
+            logger.error("My Comfort Zone alert delivery failed", { error: deliveryErr.message });
         }
     }
 
@@ -376,17 +385,17 @@ async function triggerAlert(userId, config, assessment) {
         userId,
         riskLevel: assessment.riskLevel,
         riskScore: assessment.riskScore,
-        alertType: "email",
-        recipientCount: config.trustedContacts.length,
+        alertType: "email_sms",
+        recipientCount: verifiedAcceptedContacts.length,
         deliveryStatus: failCount === 0 ? "sent" : sentCount === 0 ? "failed" : "partial",
         cooldownExpiresAt: cooldownExpires,
     });
     await alertLog.save();
 
-    logger.info("SafetyNet alert processed", {
+    logger.info("My Comfort Zone alert processed", {
         userId: String(userId),
         riskLevel: assessment.riskLevel,
-        recipientCount: config.trustedContacts.length,
+        recipientCount: verifiedAcceptedContacts.length,
         deliveryStatus: alertLog.deliveryStatus,
     });
 }
@@ -400,7 +409,7 @@ function buildAlertEmailHTML(contactName) {
         <div style="padding: 32px 28px;">
             <p style="color: #4a4458; font-size: 16px; margin: 0 0 6px; font-weight: 500;">Hi ${contactName},</p>
             <p style="color: #7c7291; font-size: 14px; margin: 16px 0; line-height: 1.8;">
-                Someone close to you may be going through a difficult emotional phase. If you are available, consider checking in with them. Sometimes a simple <strong>"How are you?"</strong> can mean the world.
+                They may be going through a difficult emotional phase. Consider checking in.
             </p>
             <div style="background: #f3f0ff; border-radius: 12px; padding: 16px; margin: 24px 0; border-left: 4px solid #945d65;">
                 <p style="color: #7c7291; font-size: 12px; margin: 0; line-height: 1.6;">

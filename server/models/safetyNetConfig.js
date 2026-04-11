@@ -1,13 +1,52 @@
 const mongoose = require("mongoose");
 
 const trustedContactSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        index: true,
+    },
     emailEncrypted: {
         type: String,
         required: true,
     },
+    emailHash: {
+        type: String,
+    },
+    phoneEncrypted: {
+        type: String,
+    },
+    phoneHash: {
+        type: String,
+    },
     nameEncrypted: {
         type: String,
         required: true,
+    },
+    isEmailVerified: {
+        type: Boolean,
+        default: false,
+    },
+    isPhoneVerified: {
+        type: Boolean,
+        default: false,
+    },
+    isAccepted: {
+        type: Boolean,
+        default: false,
+    },
+    consentTokenHash: {
+        type: String,
+        index: true,
+    },
+    consentTokenExpiresAt: {
+        type: Date,
+    },
+    acceptanceRequestedAt: {
+        type: Date,
+    },
+    acceptedAt: {
+        type: Date,
     },
     addedAt: {
         type: Date,

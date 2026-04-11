@@ -3,6 +3,7 @@ const Journal = require("../models/journal");
 const MoodEntry = require("../models/moodEntry");
 const Reflection = require("../models/reflection");
 const logger = require("../logger");
+const { aggregateEmotions } = require("../services/emotionExtractor");
 
 // Initialize Gemini
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
@@ -44,18 +45,21 @@ exports.generatePrompt = async (req, res) => {
             return res.status(200).json({ prompt: fallbackPrompt, isAI: false });
         }
 
-        // Fetch recent journal context (last 2 non-deleted entries)
+        // Fetch recent journal records only to derive non-reversible emotional signals.
         const recentEntries = await Journal.find({ userId, isDeleted: false })
             .sort({ createdAt: -1 })
-            .limit(2)
+            .limit(5)
             .select("text createdAt");
 
         let contextText = "";
         if (recentEntries.length > 0) {
-            contextText = "User's recent journal thoughts (use to provide a gently relevant question, but DO NOT reference the exact text directly in a creepy way):\n";
-            recentEntries.reverse().forEach(entry => {
-                contextText += `- ${entry.text}\n`;
-            });
+            const emotionSummary = aggregateEmotions(recentEntries);
+            contextText = `Recent private emotional signals, no raw journal text included:
+- Keywords: ${emotionSummary.aggregatedKeywords.join(", ")}
+- Average intensity: ${emotionSummary.avgIntensity}
+- Negative ratio: ${emotionSummary.avgNegativeRatio}
+- Entry count: ${emotionSummary.entryCount}
+`;
         }
 
         const model = genAI.getGenerativeModel({ 
@@ -196,32 +200,35 @@ exports.generateBulkPrompts = async (req, res) => {
         const latestMood = await MoodEntry.findOne({ userId }).sort({ createdAt: -1 });
         const moodText = latestMood ? latestMood.state : "calm";
 
-        // 2. Fetch 3 most recent calendar reflections for context
+        // 2. Fetch recent reflection metadata only. Raw responses stay private.
         const recentReflections = await Reflection.find({ userId })
             .sort({ createdAt: -1 })
             .limit(3)
-            .select("prompt response mood");
+            .select("mood date location");
 
         let reflectionContext = "";
         if (recentReflections.length > 0) {
-            reflectionContext = "User's recent calendar reflections (use for thematic continuity, but DO NOT repeat them):\n";
+            reflectionContext = "Recent reflection metadata, no private text included:\n";
             recentReflections.forEach(ref => {
-                reflectionContext += `- To the prompt "${ref.prompt}", user wrote: "${ref.response}" (Feeling ${ref.mood})\n`;
+                reflectionContext += `- Mood: ${ref.mood}, date: ${ref.date || "unknown"}, location: ${ref.location || "unknown"}\n`;
             });
         }
 
-        // 3. Fetch 2 recent journal entries for wider context
+        // 3. Fetch recent journal records only to derive non-reversible emotional signals.
         const recentJournals = await Journal.find({ userId, isDeleted: false })
             .sort({ createdAt: -1 })
-            .limit(2)
+            .limit(5)
             .select("text");
         
         let journalContext = "";
         if (recentJournals.length > 0) {
-            journalContext = "User's recent journal thoughts:\n";
-            recentJournals.forEach(j => {
-                journalContext += `- ${j.text}\n`;
-            });
+            const emotionSummary = aggregateEmotions(recentJournals);
+            journalContext = `Recent private emotional signals, no raw journal text included:
+- Keywords: ${emotionSummary.aggregatedKeywords.join(", ")}
+- Average intensity: ${emotionSummary.avgIntensity}
+- Negative ratio: ${emotionSummary.avgNegativeRatio}
+- Entry count: ${emotionSummary.entryCount}
+`;
         }
 
         if (!genAI) {
