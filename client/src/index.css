@@ -144,6 +144,17 @@ body {
   background-color: var(--color-primary-fixed);
 }
 
+/* Ensure all clickable elements show a hand pointer */
+button,
+a,
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+[role="button"],
+.cursor-pointer {
+  cursor: pointer;
+}
+
 /* Material Symbols defaults */
 .material-symbols-outlined {
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
