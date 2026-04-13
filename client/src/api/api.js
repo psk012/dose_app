@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://dose-backend-ezck.onrender.com/api";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 export async function apiFetch(url, options = {}, retries = 2, backoff = 500) {
   const timeout = options.timeout || 15000; // 15s default — enough for Render cold starts

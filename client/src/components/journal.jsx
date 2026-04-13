@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { saveJournal, apiFetch } from "../api/api"; // Ensure apiFetch is exported!
+import { saveJournal, apiFetch, API_BASE } from "../api/api";
 
 function Journal({ entry, setEntry, setEntries, entries, journalLoading, journalError }) {
     const [saving, setSaving] = useState(false);
@@ -16,8 +16,7 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
     const [deletedEntries, setDeletedEntries] = useState([]);
     const { token } = useAuth();
 
-    // Helper to fetch with auth
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://dose-backend-ezck.onrender.com/api";
+    // API_BASE imported from api.js
     
     useEffect(() => {
         if (!success) return;
@@ -27,7 +26,7 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
 
     const fetchDeleted = async () => {
         try {
-            const res = await fetch(`${API_BASE}/journal/deleted`, { headers: { Authorization: token }});
+            const res = await apiFetch(`${API_BASE}/journal/deleted`, { headers: { Authorization: token }});
             const data = await res.json();
             setDeletedEntries(data);
         } catch (err) {
@@ -48,7 +47,7 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
         setPromptsLoading(true);
         setShowPrompts(true);
         try {
-            const res = await fetch(`${API_BASE}/prompts/bulk`, {
+            const res = await apiFetch(`${API_BASE}/prompts/bulk`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: token }
             });
@@ -69,7 +68,7 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
         setSuccess(false);
 
         try {
-            const res = await fetch(`${API_BASE}/journal`, {
+            const res = await apiFetch(`${API_BASE}/journal`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: token },
                 body: JSON.stringify({ text: textToSave })
@@ -102,7 +101,7 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
 
     const handleSoftDelete = async (id) => {
         try {
-            await fetch(`${API_BASE}/journal/soft/${id}`, { method: "DELETE", headers: { Authorization: token }});
+            await apiFetch(`${API_BASE}/journal/soft/${id}`, { method: "DELETE", headers: { Authorization: token }});
             setEntries((prev) => prev.filter(e => e._id !== id));
         } catch (err) {
             console.error(err);
@@ -111,7 +110,7 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
     
     const handleRestore = async (id) => {
         try {
-            await fetch(`${API_BASE}/journal/restore/${id}`, { method: "PATCH", headers: { Authorization: token }});
+            await apiFetch(`${API_BASE}/journal/restore/${id}`, { method: "PATCH", headers: { Authorization: token }});
             const restored = deletedEntries.find(e => e._id === id);
             setDeletedEntries((prev) => prev.filter(e => e._id !== id));
             if(restored) setEntries(prev => [restored, ...prev].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
@@ -122,7 +121,7 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
     
     const handlePermanentDelete = async (id) => {
         try {
-            await fetch(`${API_BASE}/journal/permanent/${id}`, { method: "DELETE", headers: { Authorization: token }});
+            await apiFetch(`${API_BASE}/journal/permanent/${id}`, { method: "DELETE", headers: { Authorization: token }});
             setDeletedEntries((prev) => prev.filter(e => e._id !== id));
         } catch (err) {
             console.error(err);

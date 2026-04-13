@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { apiFetch } from "../api/api";
+import { apiFetch, API_BASE } from "../api/api";
 
 const MoodFace = ({ mood }) => {
     // Face Configs: Background Colors & SVG Paths for Eyes/Mouth
@@ -86,7 +86,6 @@ function Mood({ onMoodSaved }) {
         setIsSaving(true);
         setSaved(false);
         try {
-            const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
             await apiFetch(`${API_BASE}/insights/mood`, {
                 method: "POST",
                 headers: {

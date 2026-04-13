@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/navbar";
 import Mood from "../components/mood";
-import { apiFetch } from "../api/api";
+import { apiFetch, API_BASE } from "../api/api";
 
 function Insights() {
     const { token } = useAuth();
@@ -31,7 +31,7 @@ function Insights() {
         year: new Date().getFullYear()
     });
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
 
     const fetchInsights = async () => {
         try {
