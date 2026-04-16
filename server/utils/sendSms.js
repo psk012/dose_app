@@ -86,7 +86,7 @@ async function sendViaTwilio(to, message) {
     }
 
     const masked = maskPhone(to);
-    logger.info("Twilio SMS attempt", { to: masked, from: maskPhone(from) });
+    logger.info("Twilio SMS attempt", { to: masked });
 
     let lastError;
 
@@ -113,7 +113,6 @@ async function sendViaTwilio(to, message) {
 
             logger.error("Twilio SMS failed", {
                 to: masked,
-                from: maskPhone(from),
                 attempt,
                 twilioCode: classified.code,
                 retryable: classified.retryable,
