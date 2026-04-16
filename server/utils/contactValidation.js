@@ -22,13 +22,21 @@ function validateEmail(email) {
 
 function normalizePhone(phone) {
     if (typeof phone !== "string") return "";
-    return phone.trim().replace(/[\s().-]/g, "");
+    // Strip all whitespace, parens, dots, hyphens, dashes, and unicode spaces
+    let cleaned = phone.trim().replace(/[\s\u00A0\u2000-\u200B().\-\u2010-\u2015]/g, "");
+    // Strip leading zeros after country code: +910987... → +91987...
+    cleaned = cleaned.replace(/^(\+\d{1,3})0+/, "$1");
+    return cleaned;
 }
 
 function validatePhone(phone) {
     const normalized = normalizePhone(phone);
     if (!/^\+[1-9]\d{7,14}$/.test(normalized)) {
         return { ok: false, message: "Enter a valid phone number in international format, for example +919876543210." };
+    }
+    // Reject obviously invalid Indian numbers (must be 10 digits after +91)
+    if (normalized.startsWith("+91") && normalized.length !== 13) {
+        return { ok: false, message: "Indian phone numbers must be exactly 10 digits after +91." };
     }
 
     return { ok: true, value: normalized };

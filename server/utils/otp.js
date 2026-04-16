@@ -8,7 +8,7 @@ function getOtpSecret() {
     return secret;
 }
 
-function generateNumericOtp(length = 6) {
+function generateNumericOtp(length = 4) {
     const min = 10 ** (length - 1);
     const max = 10 ** length;
     return crypto.randomInt(min, max).toString();

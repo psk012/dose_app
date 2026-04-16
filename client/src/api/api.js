@@ -87,7 +87,7 @@ export async function signupUser(email, password, signupToken) {
     throw new Error(data.message || "Signup failed");
   }
 
-  return data; // { message: "User created" }
+  return data; // { message, token }
 }
 
 export async function verifyEmail(token) {

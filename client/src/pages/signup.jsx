@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { sendOtp, verifyOtp, signupUser, loginUser } from "../api/api";
+import { sendOtp, verifyOtp, signupUser } from "../api/api";
+import { useAuth } from "../context/AuthContext";
 import manasBanner from "../assets/manas-banner.png";
 
 function Signup() {
@@ -19,6 +20,7 @@ function Signup() {
     const [resendTimer, setResendTimer] = useState(30);
     const [canResend, setCanResend] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     useEffect(() => {
         let interval;
@@ -52,8 +54,8 @@ function Signup() {
     };
 
     const handleVerifyOtp = async () => {
-        if (!otp.trim() || otp.length !== 6) {
-            setError("Please enter a valid 6-digit OTP");
+        if (!otp.trim() || otp.length !== 4) {
+            setError("Please enter a valid 4-digit OTP");
             return;
         }
         setError("");
@@ -77,9 +79,9 @@ function Signup() {
         setError("");
         setLoadingAction("signup");
         try {
-            await signupUser(email, password, signupToken);
-            // After account creation, offer My Comfort Zone setup guidance
-            await loginUser(email, password);
+            const data = await signupUser(email, password, signupToken);
+            // Store token — user is now authenticated
+            login(data.token);
             setStep(4); // Advance to My Comfort Zone onboarding
         } catch (err) {
             setError(err.message);
@@ -89,11 +91,11 @@ function Signup() {
     };
 
     const handleComfortZoneSetup = async () => {
-        navigate("/login");
+        navigate("/safetynet");
     };
 
     const handleSkipComfortZone = () => {
-        navigate("/login");
+        navigate("/");
     };
 
     const handleKeyDown = (e, callback) => {
@@ -157,11 +159,11 @@ function Signup() {
                     {step === 2 && (
                         <div>
                             <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-1.5 block">
-                                6-Digit OTP
+                                4-Digit OTP
                             </label>
                             <input
                                 type="text"
-                                maxLength="6"
+                                maxLength="4"
                                 placeholder="0000"
                                 className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface text-center tracking-widest text-xl placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
                                 value={otp}
@@ -235,7 +237,7 @@ function Signup() {
                                     </div>
                                     <div>
                                         <p className="text-on-surface text-sm leading-relaxed">
-                                            My Comfort Zone lets you add trusted people after email, phone, and acceptance verification. Nothing you write is shared.
+                                            My Comfort Zone lets you add trusted people after secure email verification and consent. Nothing you write is shared.
                                         </p>
                                     </div>
                                 </div>

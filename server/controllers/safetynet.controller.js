@@ -45,17 +45,14 @@ function getPublicApiBase(req) {
 
 function decryptContact(contact) {
     const email = contact.emailEncrypted ? decrypt(contact.emailEncrypted) : "";
-    const phone = contact.phoneEncrypted ? decrypt(contact.phoneEncrypted) : "";
 
     return {
         id: contact._id,
         name: contact.nameEncrypted ? decrypt(contact.nameEncrypted) : "",
         email,
-        phone,
         isEmailVerified: Boolean(contact.isEmailVerified),
-        isPhoneVerified: Boolean(contact.isPhoneVerified),
         isAccepted: Boolean(contact.isAccepted),
-        isActive: Boolean(contact.isEmailVerified && contact.isPhoneVerified && contact.isAccepted),
+        isActive: Boolean(contact.isEmailVerified && contact.isAccepted),
         addedAt: contact.addedAt,
         acceptedAt: contact.acceptedAt,
         acceptanceRequestedAt: contact.acceptanceRequestedAt,
@@ -64,7 +61,7 @@ function decryptContact(contact) {
 
 function activeContacts(config) {
     return (config.trustedContacts || []).filter(
-        (contact) => contact.isEmailVerified && contact.isPhoneVerified && contact.isAccepted
+        (contact) => contact.isEmailVerified && contact.isAccepted
     );
 }
 
@@ -80,9 +77,9 @@ async function findOrCreateConfig(userId, enabled = true) {
     return config;
 }
 
-function hasDuplicateContact(config, emailHash, phoneHash) {
+function hasDuplicateContact(config, emailHash) {
     return (config.trustedContacts || []).some((contact) => (
-        contact.emailHash === emailHash || contact.phoneHash === phoneHash
+        contact.emailHash === emailHash
     ));
 }
 
@@ -180,7 +177,7 @@ async function requestOtp({ req, res, channel }) {
             return res.status(409).json({ message: "This contact is already in My Comfort Zone." });
         }
 
-        const otp = generateNumericOtp(6);
+        const otp = generateNumericOtp(4);
         await ContactVerificationOtp.deleteMany({ userId: req.userId, channel, targetHash: hash });
         await ContactVerificationOtp.create({
             userId: req.userId,
@@ -193,15 +190,29 @@ async function requestOtp({ req, res, channel }) {
         if (channel === "email") {
             await sendEmail(target, "Verify My Comfort Zone contact", buildContactOtpEmail(otp));
             logger.info("Contact email OTP sent", { userId: String(req.userId), email: maskEmail(target) });
+            res.json({ message: "Email verification code sent." });
         } else {
-            await sendSms(target, `Manas My Comfort Zone code: ${otp}. It expires in 10 minutes.`);
-            logger.info("Contact phone OTP sent", { userId: String(req.userId), phone: maskPhone(target) });
+            const smsResult = await sendSms(target, `Manas My Comfort Zone code: ${otp}. It expires in 10 minutes.`);
+            logger.info("Contact phone OTP sent", {
+                userId: String(req.userId),
+                phone: maskPhone(target),
+                provider: smsResult.provider,
+                sid: smsResult.sid || null,
+            });
+            const response = { message: "Phone verification code sent." };
+            if (smsResult.warning) {
+                response.warning = smsResult.warning;
+                response.message = "OTP generated, but SMS delivery may be unreliable. Check logs if code doesn't arrive.";
+            }
+            res.json(response);
         }
-
-        res.json({ message: channel === "email" ? "Email verification code sent." : "Phone verification code sent." });
     } catch (err) {
         logger.error("Contact OTP request error", { userId: String(req.userId), channel, error: err.message });
-        res.status(500).json({ message: `Failed to send ${channel} verification code.` });
+        // Propagate the specific error from sendSms instead of a generic message
+        const message = channel === "phone" && err.message
+            ? err.message
+            : `Failed to send ${channel} verification code.`;
+        res.status(500).json({ message });
     }
 }
 
@@ -212,7 +223,7 @@ async function verifyOtp({ req, res, channel }) {
             : validatePhone(req.body.phone);
         const { otp } = req.body;
 
-        if (!validation.ok || typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
+        if (!validation.ok || typeof otp !== "string" || !/^\d{4}$/.test(otp)) {
             return res.status(400).json({ message: "Invalid verification code." });
         }
 
@@ -277,7 +288,7 @@ async function consumeVerificationToken({ userId, channel, target, token }) {
     return true;
 }
 
-async function sendConsentMessages({ req, userId, contactName, email, phone, token }) {
+async function sendConsentMessages({ req, userId, contactName, email, token }) {
     const owner = await User.findById(userId).select("email").lean();
     const ownerEmail = owner?.email || "A Manas user";
     const acceptUrl = `${getPublicApiBase(req)}/api/comfort-zone/contacts/consent/${token}`;
@@ -287,7 +298,6 @@ async function sendConsentMessages({ req, userId, contactName, email, phone, tok
         "You've been added to My Comfort Zone",
         buildConsentEmail({ contactName, ownerEmail, acceptUrl })
     );
-    await sendSms(phone, `You've been added as a trusted contact. Accept? ${acceptUrl}`);
 }
 
 exports.getConfig = async (req, res) => {
@@ -363,24 +373,20 @@ exports.addVerifiedContact = async (req, res) => {
     try {
         const nameValidation = validateContactName(req.body.name);
         const emailValidation = validateEmail(req.body.email);
-        const phoneValidation = validatePhone(req.body.phone);
 
         if (!nameValidation.ok) return res.status(400).json({ message: nameValidation.message });
         if (!emailValidation.ok) return res.status(400).json({ message: emailValidation.message });
-        if (!phoneValidation.ok) return res.status(400).json({ message: phoneValidation.message });
 
-        const { emailVerificationToken, phoneVerificationToken } = req.body;
+        const { emailVerificationToken } = req.body;
         const name = nameValidation.value;
         const email = emailValidation.value;
-        const phone = phoneValidation.value;
         const emailHash = targetHash("email", email);
-        const phoneHash = targetHash("phone", phone);
 
         const config = await findOrCreateConfig(req.userId, true);
         if (config.trustedContacts.length >= MAX_CONTACTS) {
             return res.status(400).json({ message: `You can add up to ${MAX_CONTACTS} contacts.` });
         }
-        if (hasDuplicateContact(config, emailHash, phoneHash)) {
+        if (hasDuplicateContact(config, emailHash)) {
             return res.status(409).json({ message: "This contact is already in My Comfort Zone." });
         }
 
@@ -390,15 +396,9 @@ exports.addVerifiedContact = async (req, res) => {
             target: email,
             token: emailVerificationToken,
         });
-        const phoneVerified = await consumeVerificationToken({
-            userId: req.userId,
-            channel: "phone",
-            target: phone,
-            token: phoneVerificationToken,
-        });
 
-        if (!emailVerified || !phoneVerified) {
-            return res.status(400).json({ message: "Verify both email and phone before saving this contact." });
+        if (!emailVerified) {
+            return res.status(400).json({ message: "Verify the contact's email before saving." });
         }
 
         const consentToken = createSecureToken(32);
@@ -410,10 +410,7 @@ exports.addVerifiedContact = async (req, res) => {
             nameEncrypted: encrypt(name),
             emailEncrypted: encrypt(email),
             emailHash,
-            phoneEncrypted: encrypt(phone),
-            phoneHash,
             isEmailVerified: true,
-            isPhoneVerified: true,
             isAccepted: false,
             consentTokenHash: consentTokenHash(consentToken),
             consentTokenExpiresAt: new Date(Date.now() + CONSENT_TOKEN_TTL_MS),
@@ -421,13 +418,12 @@ exports.addVerifiedContact = async (req, res) => {
             addedAt: now,
         });
 
-        await sendConsentMessages({ req, userId: req.userId, contactName: name, email, phone, token: consentToken });
+        await sendConsentMessages({ req, userId: req.userId, contactName: name, email, token: consentToken });
         await config.save();
 
         logger.info("My Comfort Zone contact added pending acceptance", {
             userId: String(req.userId),
             email: maskEmail(email),
-            phone: maskPhone(phone),
         });
 
         res.status(201).json({ message: "Contact verified and invitation sent for acceptance." });

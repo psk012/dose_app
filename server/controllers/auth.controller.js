@@ -64,7 +64,7 @@ exports.sendOtp = async (req, res) => {
             return res.status(409).json({ message: "An account with this email already exists" });
         }
 
-        const otpCode = generateNumericOtp(6);
+        const otpCode = generateNumericOtp(4);
         await Otp.deleteMany({ email });
         await Otp.create({
             email,
@@ -91,7 +91,7 @@ exports.verifyOtp = async (req, res) => {
         const emailValidation = validateEmail(req.body.email);
         const { otp } = req.body;
 
-        if (!emailValidation.ok || typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
+        if (!emailValidation.ok || typeof otp !== "string" || !/^\d{4}$/.test(otp)) {
             return res.status(400).json({ message: "Invalid OTP format" });
         }
 
@@ -148,14 +148,16 @@ exports.signup = async (req, res) => {
         if (existingUser) return res.status(409).json({ message: "Account already exists" });
 
         const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
-        await User.create({
+        const user = await User.create({
             email: normalizedEmail,
             password: hashedPassword,
             isVerified: true,
         });
 
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_TTL });
+
         logger.info("New account created via OTP flow", { email: maskEmail(normalizedEmail), ip: req.ip });
-        res.status(201).json({ message: "Account created successfully" });
+        res.status(201).json({ message: "Account created successfully", token });
     } catch (err) {
         logger.error("Signup error", { error: err.message });
         res.status(500).json({ message: "Something went wrong finalizing your account." });

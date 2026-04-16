@@ -10,22 +10,19 @@ import {
     getComfortZoneStatus,
     pauseComfortZone,
     requestComfortZoneEmailOtp,
-    requestComfortZonePhoneOtp,
     resumeComfortZone,
     updateComfortZoneConfig,
     verifyComfortZoneEmailOtp,
-    verifyComfortZonePhoneOtp,
 } from "../api/api";
 
 const emptyForm = {
     name: "",
     email: "",
-    phone: "",
     emailOtp: "",
-    phoneOtp: "",
     emailVerificationToken: "",
-    phoneVerificationToken: "",
 };
+
+const OTP_COOLDOWN_SECONDS = 60;
 
 function MyComfortZone() {
     const { token } = useAuth();
@@ -40,6 +37,7 @@ function MyComfortZone() {
     const [success, setSuccess] = useState("");
     const [showConsent, setShowConsent] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
+    const [emailCooldown, setEmailCooldown] = useState(0);
 
     const loadData = useCallback(async () => {
         try {
@@ -66,6 +64,15 @@ function MyComfortZone() {
         loadData();
     }, [loadData]);
 
+    // Cooldown timer for email OTP send button
+    useEffect(() => {
+        if (emailCooldown <= 0) return;
+        const interval = setInterval(() => {
+            setEmailCooldown((prev) => Math.max(0, prev - 1));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [emailCooldown]);
+
     async function run(key, action) {
         setBusy(key);
         setError("");
@@ -89,10 +96,7 @@ function MyComfortZone() {
             if (field === "email") {
                 next.emailOtp = "";
                 next.emailVerificationToken = "";
-            }
-            if (field === "phone") {
-                next.phoneOtp = "";
-                next.phoneVerificationToken = "";
+                setEmailCooldown(0);
             }
             return next;
         });
@@ -122,6 +126,7 @@ function MyComfortZone() {
     async function sendEmailCode() {
         await run("send-email", async () => {
             await requestComfortZoneEmailOtp(token, form.email);
+            setEmailCooldown(OTP_COOLDOWN_SECONDS);
             flash("Email code sent.");
         });
     }
@@ -134,29 +139,12 @@ function MyComfortZone() {
         });
     }
 
-    async function sendPhoneCode() {
-        await run("send-phone", async () => {
-            await requestComfortZonePhoneOtp(token, form.phone);
-            flash("Phone code sent.");
-        });
-    }
-
-    async function verifyPhoneCode() {
-        await run("verify-phone", async () => {
-            const data = await verifyComfortZonePhoneOtp(token, form.phone, form.phoneOtp);
-            setForm(prev => ({ ...prev, phoneVerificationToken: data.verificationToken }));
-            flash("Phone verified.");
-        });
-    }
-
     async function saveContact() {
         await run("save-contact", async () => {
             await addComfortZoneContact(token, {
                 name: form.name,
                 email: form.email,
-                phone: form.phone,
                 emailVerificationToken: form.emailVerificationToken,
-                phoneVerificationToken: form.phoneVerificationToken,
             });
             setForm(emptyForm);
             setShowAdd(false);
@@ -205,7 +193,7 @@ function MyComfortZone() {
     }
 
     const contacts = config?.trustedContacts || [];
-    const canSave = form.name.trim() && form.emailVerificationToken && form.phoneVerificationToken;
+    const canSave = form.name.trim() && form.emailVerificationToken;
 
     if (loading) {
         return (
@@ -283,36 +271,68 @@ function MyComfortZone() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-bold text-on-surface text-sm truncate">{contact.name || "Contact"}</p>
                                                 <p className="text-xs text-on-surface-variant/60 truncate">{contact.email}</p>
-                                                <p className="text-xs text-on-surface-variant/60 truncate">{contact.phone || "Phone pending"}</p>
                                             </div>
                                             <button onClick={() => removeContact(contact.id)} disabled={busy === `delete-${contact.id}`} className="text-on-surface-variant/40 hover:text-error"><span className="material-symbols-outlined text-lg">delete</span></button>
                                         </div>
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             {pill(contact.isEmailVerified, "Email verified", "Email pending")}
-                                            {pill(contact.isPhoneVerified, "Phone verified", "Phone pending")}
                                             {pill(contact.isAccepted, "Accepted", "Acceptance pending")}
                                         </div>
                                     </div>
                                 ))}
                                 {showAdd && (
-                                    <div className="p-4 bg-surface-container-low rounded-2xl space-y-3 border border-outline-variant/30">
+                                    <div className="p-5 bg-surface-container-low rounded-2xl space-y-4 border border-outline-variant/30">
                                         <p className="font-semibold text-on-surface text-sm">Add a contact</p>
-                                        <input className="w-full px-3 py-2.5 bg-surface-container-lowest border border-outline-variant/50 rounded-lg text-sm" placeholder="Their name" value={form.name} onChange={(e) => updateForm("name", e.target.value)} />
-                                        <input className="w-full px-3 py-2.5 bg-surface-container-lowest border border-outline-variant/50 rounded-lg text-sm" placeholder="their@email.com" value={form.email} onChange={(e) => updateForm("email", e.target.value)} />
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button onClick={sendEmailCode} disabled={busy === "send-email" || !form.email} className="rounded-full bg-surface-container-high px-3 py-2 text-xs font-bold disabled:opacity-50">Send email code</button>
-                                            <input inputMode="numeric" maxLength={6} className="rounded-full bg-surface-container-lowest border border-outline-variant/50 px-3 py-2 text-xs" placeholder="6-digit code" value={form.emailOtp} onChange={(e) => updateForm("emailOtp", e.target.value.replace(/\D/g, ""))} />
+
+                                        {/* Name */}
+                                        <input className="w-full px-3 py-2.5 bg-surface-container-lowest border border-outline-variant/50 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all" placeholder="Their name" value={form.name} onChange={(e) => updateForm("name", e.target.value)} />
+
+                                        {/* ── EMAIL VERIFICATION ── */}
+                                        <div className="space-y-2.5">
+                                            <label className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant/70">Email</label>
+                                            <input type="email" className="w-full px-3 py-2.5 bg-surface-container-lowest border border-outline-variant/50 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all" placeholder="their@email.com" value={form.email} onChange={(e) => updateForm("email", e.target.value)} disabled={Boolean(form.emailVerificationToken)} />
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={sendEmailCode}
+                                                    disabled={busy === "send-email" || !form.email || emailCooldown > 0 || Boolean(form.emailVerificationToken)}
+                                                    className="flex-1 rounded-xl bg-surface-container-high hover:bg-surface-container-highest px-3 py-2.5 text-xs font-bold text-on-surface-variant disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                                >
+                                                    {busy === "send-email" ? "Sending..." : emailCooldown > 0 ? `Resend in ${emailCooldown}s` : "Send code"}
+                                                </button>
+                                                <input
+                                                    inputMode="numeric"
+                                                    maxLength={4}
+                                                    className="w-24 rounded-xl bg-surface-container-lowest border border-outline-variant/50 px-3 py-2.5 text-xs text-center tracking-widest text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container transition-all"
+                                                    placeholder="0000"
+                                                    value={form.emailOtp}
+                                                    onChange={(e) => updateForm("emailOtp", e.target.value.replace(/\D/g, ""))}
+                                                    disabled={Boolean(form.emailVerificationToken)}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={verifyEmailCode}
+                                                disabled={busy === "verify-email" || form.emailOtp.length !== 4 || Boolean(form.emailVerificationToken)}
+                                                className={`w-full rounded-xl px-3 py-2.5 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                                                    form.emailVerificationToken
+                                                        ? "bg-primary/10 text-primary border border-primary/20"
+                                                        : form.emailOtp.length === 4
+                                                            ? "bg-primary-container text-on-primary-container hover:shadow-md active:scale-[0.98]"
+                                                            : "bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed"
+                                                } disabled:cursor-not-allowed`}
+                                            >
+                                                {busy === "verify-email" && <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>}
+                                                {form.emailVerificationToken && <span className="material-symbols-outlined text-sm">check_circle</span>}
+                                                {form.emailVerificationToken ? "Email verified" : busy === "verify-email" ? "Verifying..." : "Verify email"}
+                                            </button>
                                         </div>
-                                        <button onClick={verifyEmailCode} disabled={busy === "verify-email" || form.emailOtp.length !== 6 || Boolean(form.emailVerificationToken)} className="w-full rounded-full border border-outline-variant/40 px-3 py-2 text-xs font-bold disabled:opacity-50">{form.emailVerificationToken ? "Email verified" : "Verify email"}</button>
-                                        <input className="w-full px-3 py-2.5 bg-surface-container-lowest border border-outline-variant/50 rounded-lg text-sm" placeholder="+919876543210" value={form.phone} onChange={(e) => updateForm("phone", e.target.value)} />
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button onClick={sendPhoneCode} disabled={busy === "send-phone" || !form.phone} className="rounded-full bg-surface-container-high px-3 py-2 text-xs font-bold disabled:opacity-50">Send SMS code</button>
-                                            <input inputMode="numeric" maxLength={6} className="rounded-full bg-surface-container-lowest border border-outline-variant/50 px-3 py-2 text-xs" placeholder="6-digit code" value={form.phoneOtp} onChange={(e) => updateForm("phoneOtp", e.target.value.replace(/\D/g, ""))} />
-                                        </div>
-                                        <button onClick={verifyPhoneCode} disabled={busy === "verify-phone" || form.phoneOtp.length !== 6 || Boolean(form.phoneVerificationToken)} className="w-full rounded-full border border-outline-variant/40 px-3 py-2 text-xs font-bold disabled:opacity-50">{form.phoneVerificationToken ? "Phone verified" : "Verify phone"}</button>
-                                        <div className="flex gap-3 pt-2">
-                                            <button onClick={saveContact} disabled={busy === "save-contact" || !canSave} className="flex-1 bg-primary-container text-on-primary-container rounded-full py-2.5 font-semibold text-sm disabled:opacity-50">Save and invite</button>
-                                            <button onClick={() => { setShowAdd(false); setForm(emptyForm); }} className="flex-1 bg-surface-container-high text-on-surface-variant rounded-full py-2.5 text-sm">Cancel</button>
+
+                                        {/* ── ACTIONS ── */}
+                                        <div className="flex gap-3 pt-1">
+                                            <button onClick={saveContact} disabled={busy === "save-contact" || !canSave} className="flex-1 bg-primary-container text-on-primary-container rounded-full py-2.5 font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                                                {busy === "save-contact" && <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>}
+                                                {busy === "save-contact" ? "Saving..." : "Save and invite"}
+                                            </button>
+                                            <button onClick={() => { setShowAdd(false); setForm(emptyForm); setEmailCooldown(0); }} className="flex-1 bg-surface-container-high text-on-surface-variant rounded-full py-2.5 text-sm hover:bg-surface-container-highest transition-colors cursor-pointer">Cancel</button>
                                         </div>
                                     </div>
                                 )}
