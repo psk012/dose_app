@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-function Navbar() {
+function Navbar({ variant = "floating" }) {
     const location = useLocation();
     const [isOpen, setIsOpen] = useState(false);
     
-    // Auto-open on home page, otherwise state-controlled
-    const isHomePage = location.pathname === "/";
-    const showFullNavbar = isOpen;
+    // Auto-open logic for floating variant (collapses by default now)
+    const showFullNavbar = variant === "footer" || isOpen;
+    const isFloating = variant === "floating";
 
     const links = [
         { path: "/", label: "Home", icon: "home" },
@@ -17,25 +17,31 @@ function Navbar() {
         { path: "/insights", label: "Insights", icon: "insights" },
     ];
 
+    const containerClasses = isFloating
+        ? "fixed bottom-6 left-0 right-0 w-full z-50 flex justify-center px-4 pointer-events-none"
+        : "relative w-full flex justify-center py-6 px-4";
+
     return (
-        <div className="fixed bottom-6 left-0 right-0 w-full z-50 flex justify-center px-4 pointer-events-none">
+        <div className={containerClasses}>
             <div 
                 className="relative flex justify-center w-full max-w-[23rem]"
                 onMouseEnter={() => setIsOpen(true)}
                 onMouseLeave={() => setIsOpen(false)}
             >
                 {/* The Trigger Button (Visible when collapsed) */}
-                <button 
-                    onClick={() => setIsOpen(true)}
-                    className={`pointer-events-auto absolute bottom-0 flex items-center justify-center w-14 h-14 rounded-full bg-surface-container-highest shadow-lg border border-primary/20 text-primary transition-all duration-500 ease-spring cursor-pointer ${!showFullNavbar ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-50 pointer-events-none'}`}
-                >
-                    <span className="material-symbols-outlined text-3xl">menu</span>
-                </button>
+                {isFloating && (
+                    <button 
+                        onClick={() => setIsOpen(true)}
+                        className={`pointer-events-auto absolute bottom-0 flex items-center justify-center w-14 h-14 rounded-full bg-surface-container-highest shadow-lg border border-primary/20 text-primary transition-all duration-500 ease-spring cursor-pointer ${!showFullNavbar ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-50 pointer-events-none'}`}
+                    >
+                        <span className="material-symbols-outlined text-3xl">menu</span>
+                    </button>
+                )}
 
                 {/* The Floating Navbar */}
                 <nav 
                     onClick={(e) => e.stopPropagation()}
-                    className={`pointer-events-auto w-full bg-surface-container-lowest/90 backdrop-blur-2xl border border-outline-variant/50 rounded-[2.5rem] p-2 shadow-2xl transition-all duration-500 ease-spring ${!showFullNavbar ? 'opacity-0 translate-y-12 scale-90 pointer-events-none' : 'opacity-100 translate-y-0 scale-100'}`}
+                    className={`${isFloating ? 'pointer-events-auto' : ''} w-full bg-surface-container-lowest/90 backdrop-blur-2xl border border-outline-variant/50 rounded-[2.5rem] p-2 shadow-2xl transition-all duration-500 ease-spring ${!showFullNavbar ? 'opacity-0 translate-y-12 scale-90 pointer-events-none' : 'opacity-100 translate-y-0 scale-100'}`}
                 >
                     <div className="flex justify-between items-center gap-1 w-full relative">
                         {links.map(({ path, label, icon }) => {

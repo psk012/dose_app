@@ -56,7 +56,7 @@ function Home() {
     }, []);
 
     return (
-        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-36">
+        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-12">
             {/* Reset Prompt Modal */}
             {showResetPrompt && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-surface/80 backdrop-blur-md transition-opacity">
@@ -145,7 +145,11 @@ function Home() {
                     </div>
                 </section>
 
-                <Navbar />
+                <div className="mt-12 mb-4">
+                    <hr className="border-outline-variant/30" />
+                </div>
+
+                <Navbar variant="footer" />
             </div>
         </div>
     );
