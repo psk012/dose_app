@@ -69,8 +69,8 @@ function Navbar({ variant = "floating" }) {
                             );
                         })}
                         
-                        {/* Close logic for toggle UI (only show when not on homepage) */}
-                        {!isHomePage && (
+                        {/* Close logic for toggle UI (only show when floating) */}
+                        {isFloating && (
                             <button 
                                 onClick={() => setIsOpen(false)}
                                 className="absolute -top-12 right-2 w-8 h-8 rounded-full bg-surface-container-high/50 backdrop-blur-md flex items-center justify-center text-on-surface-variant/50 hover:text-error transition-all cursor-pointer"

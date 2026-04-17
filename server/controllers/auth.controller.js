@@ -40,15 +40,18 @@ function buildOtpEmail(otpCode) {
     </div>`;
 }
 
-function buildResetEmail(resetUrl) {
+function buildPasswordResetOtpEmail(otpCode) {
     return `<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #faf9ff; border-radius: 16px; overflow: hidden; border: 1px solid #ede9ff;">
         <div style="background: #945d65; padding: 28px 24px; text-align: center;">
             <h1 style="color: #fff; margin: 0; font-size: 28px;">Manas</h1>
         </div>
         <div style="padding: 32px 28px; text-align: center;">
             <p style="color: #4a4458; font-size: 16px; margin: 0 0 6px; font-weight: 600;">Reset your password</p>
-            <p style="color: #7c7291; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">This link expires in 1 hour. If you did not request it, you can ignore this email.</p>
-            <a href="${escapeHtml(resetUrl)}" style="display: inline-block; background: #945d65; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-size: 15px; font-weight: 600;">Reset Password</a>
+            <p style="color: #7c7291; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">Use this verification code to reset your password. If you didn't request this, you can ignore this email.</p>
+            <div style="background: #fff; border: 2px solid #e4dfff; border-radius: 12px; padding: 20px; display: inline-block; margin: 0 0 24px;">
+                <span style="font-size: 36px; font-weight: 700; letter-spacing: 10px; color: #945d65;">${escapeHtml(otpCode)}</span>
+            </div>
+            <p style="color: #a099b0; font-size: 12px; margin: 0;">This code expires in ${SIGNUP_OTP_TTL_MINUTES} minutes.</p>
         </div>
     </div>`;
 }
@@ -190,57 +193,104 @@ exports.login = async (req, res) => {
     }
 };
 
-exports.forgotPassword = async (req, res) => {
+exports.sendForgotPasswordOtp = async (req, res) => {
     try {
         const { email } = req.body;
-        if (typeof email !== "string" || !validator.isEmail(email)) {
-            return res.status(400).json({ message: "Valid email required" });
-        }
+        const validation = validateEmail(email);
+        if (!validation.ok) return res.status(400).json({ message: "Valid email required" });
 
-        const normalizedEmail = email.trim().toLowerCase();
-        const genericMessage = "If an account exists for this email, a reset link has been sent.";
+        const normalizedEmail = validation.value;
+        const genericMessage = "If an account exists for this email, an OTP has been sent.";
         const user = await User.findOne({ email: normalizedEmail });
         if (!user) return res.json({ message: genericMessage });
 
-        const resetToken = createSecureToken(32);
-        user.resetPasswordToken = hashValue(resetToken, "password-reset");
-        user.resetPasswordExpires = Date.now() + RESET_TOKEN_TTL_MS;
-        await user.save();
+        const otpCode = generateNumericOtp(4);
+        await Otp.deleteMany({ email: normalizedEmail });
+        await Otp.create({
+            email: normalizedEmail,
+            otpHash: hashValue(otpCode, `reset:${normalizedEmail}`),
+        });
 
-        const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-        const resetUrl = `${clientUrl}/reset-password?token=${resetToken}`;
-        await sendEmail(user.email, "Reset your Manas password", buildResetEmail(resetUrl));
-
-        logger.info("Password reset requested", { email: maskEmail(normalizedEmail), ip: req.ip });
-        res.json({ message: genericMessage });
+        try {
+            await sendEmail(user.email, "Reset your Manas password", buildPasswordResetOtpEmail(otpCode));
+            logger.info("Password reset OTP sent", { email: maskEmail(normalizedEmail), ip: req.ip });
+            res.json({ message: genericMessage });
+        } catch (emailErr) {
+            logger.error("Password reset OTP email failed", { email: maskEmail(normalizedEmail), error: emailErr.message });
+            await Otp.deleteMany({ email: normalizedEmail });
+            res.status(502).json({ message: "Failed to send OTP email. Please try again in a moment." });
+        }
     } catch (err) {
-        logger.error("Forgot password error", { error: err.message });
+        logger.error("Send forgot password OTP error", { error: err.message });
         res.status(500).json({ message: "Server error" });
     }
 };
 
-exports.resetPassword = async (req, res) => {
+exports.verifyForgotPasswordOtp = async (req, res) => {
     try {
-        const { token, newPassword } = req.body;
-        if (typeof token !== "string" || typeof newPassword !== "string") {
+        const emailValidation = validateEmail(req.body.email);
+        const { otp } = req.body;
+
+        if (!emailValidation.ok || typeof otp !== "string" || !/^\d{4}$/.test(otp)) {
+            return res.status(400).json({ message: "Invalid OTP format" });
+        }
+
+        const email = emailValidation.value;
+        const record = await Otp.findOne({ email });
+        if (!record) return res.status(400).json({ message: "Invalid or expired OTP" });
+
+        if (record.attempts >= 5) {
+            await Otp.deleteMany({ email });
+            return res.status(429).json({ message: "Too many invalid attempts. Please request a new code." });
+        }
+
+        const expectedHash = hashValue(otp, `reset:${email}`);
+        if (!timingSafeEqual(record.otpHash, expectedHash)) {
+            record.attempts += 1;
+            await record.save();
+            logger.warn("Invalid password reset OTP attempt", { email: maskEmail(email), attempts: record.attempts });
+            return res.status(400).json({ message: "Invalid or expired OTP" });
+        }
+
+        const resetToken = jwt.sign({ email, intent: "password-reset" }, process.env.JWT_SECRET, { expiresIn: SIGNUP_TOKEN_TTL });
+        await Otp.deleteMany({ email });
+        res.status(200).json({ message: "OTP verified", resetToken });
+    } catch (err) {
+        logger.error("Verify forgot password OTP error", { error: err.message });
+        res.status(500).json({ message: "Something went wrong verifying OTP." });
+    }
+};
+
+exports.resetPasswordWithOtp = async (req, res) => {
+    try {
+        const { resetToken, newPassword } = req.body;
+        if (typeof resetToken !== "string" || typeof newPassword !== "string") {
             return res.status(400).json({ message: "Invalid input types" });
         }
+        
+        let decoded;
+        try {
+            decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+        } catch {
+            return res.status(400).json({ message: "Invalid or expired reset session. Please request a new OTP." });
+        }
+
+        if (decoded.intent !== "password-reset" || !decoded.email) {
+            return res.status(400).json({ message: "Invalid reset intent" });
+        }
+
         if (!isStrongPassword(newPassword)) {
             return res.status(400).json({ message: "Password must be at least 8 characters and include a number and special character." });
         }
 
-        const user = await User.findOne({
-            resetPasswordToken: hashValue(token, "password-reset"),
-            resetPasswordExpires: { $gt: Date.now() },
-        });
-        if (!user) return res.status(400).json({ message: "Invalid or expired reset token" });
+        const user = await User.findOne({ email: decoded.email });
+        if (!user) return res.status(400).json({ message: "Account not found" });
 
         user.password = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
         await user.save();
 
-        res.json({ message: "Password has been successfully reset" });
+        logger.info("Password successfully reset via OTP", { email: maskEmail(decoded.email), ip: req.ip });
+        res.json({ message: "Password has been successfully reset. Please log in." });
     } catch (err) {
         logger.error("Reset password error", { error: err.message });
         res.status(500).json({ message: "Server error" });

@@ -75,11 +75,19 @@ function Login() {
                         <input
                             type="password"
                             placeholder="••••••••"
-                            className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
+                            className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all mb-2"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             onKeyDown={handleKeyDown}
                         />
+                        <div className="flex justify-end">
+                            <span 
+                                onClick={() => navigate("/forgot-password")}
+                                className="text-xs text-primary font-medium hover:underline cursor-pointer"
+                            >
+                                Forgot your password?
+                            </span>
+                        </div>
                     </div>
                 </div>
 

@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import Home from "./pages/home";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
+import ForgotPassword from "./pages/forgotPassword";
 import ResetPage from "./pages/resetpage";
 import Welcome from "./pages/welcome";
 import JournalPage from "./pages/journalpage";
@@ -197,6 +198,7 @@ function App() {
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
       </Routes>
     </>

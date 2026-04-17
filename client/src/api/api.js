@@ -99,6 +99,45 @@ export async function verifyEmail(token) {
   return data;
 }
 
+export async function sendForgotPasswordOtp(email) {
+  const res = await apiFetch(`${API_BASE}/forgot-password/send-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+    timeout: 30000,
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    if (res.status === 502) {
+      throw new Error("Email delivery failed. Please try again in a moment.");
+    }
+    throw new Error(data.message || "Failed to send reset OTP");
+  }
+  return data;
+}
+
+export async function verifyForgotPasswordOtp(email, otp) {
+  const res = await apiFetch(`${API_BASE}/forgot-password/verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, otp }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Verification failed");
+  return data;
+}
+
+export async function resetPasswordWithOtp(resetToken, newPassword) {
+  const res = await apiFetch(`${API_BASE}/forgot-password/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resetToken, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Password reset failed");
+  return data;
+}
+
 // ─── JOURNAL ─────────────────────────────────────────
 
 export async function fetchJournals(token) {
