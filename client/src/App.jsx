@@ -15,6 +15,7 @@ import VerifyEmail from "./pages/verifyEmail";
 import ProtectedRoute from "./components/protectedroute";
 import { useAuth } from "./context/AuthContext";
 import { fetchJournals } from "./api/api";
+import { ProgressBar } from "./components/progressBar";
 
 function App() {
   const { token } = useAuth();
@@ -84,98 +85,101 @@ function App() {
   }
 
   return (
-    <Routes>
-      {/* 🔒 PROTECTED ROUTES */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        }
-      />
+    <>
+      <ProgressBar />
+      <Routes>
+        {/* 🔒 PROTECTED ROUTES */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/reset"
-        element={
-          <ProtectedRoute>
-            <ResetPage
-              isRunning={isRunning}
-              timeLeft={timeLeft}
-              phase={phase}
-              startReset={startReset}
-            />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/reset"
+          element={
+            <ProtectedRoute>
+              <ResetPage
+                isRunning={isRunning}
+                timeLeft={timeLeft}
+                phase={phase}
+                startReset={startReset}
+              />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/journal"
-        element={
-          <ProtectedRoute>
-            <JournalPage
-              entry={entry}
-              setEntry={setEntry}
-              setEntries={setEntries}
-              entries={entries}
-              journalLoading={journalLoading}
-              journalError={journalError}
-            />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/journal"
+          element={
+            <ProtectedRoute>
+              <JournalPage
+                entry={entry}
+                setEntry={setEntry}
+                setEntries={setEntries}
+                entries={entries}
+                journalLoading={journalLoading}
+                journalError={journalError}
+              />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/focus"
-        element={
-          <ProtectedRoute>
-            <FocusPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/focus"
+          element={
+            <ProtectedRoute>
+              <FocusPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/insights"
-        element={
-          <ProtectedRoute>
-            <Insights />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/insights"
+          element={
+            <ProtectedRoute>
+              <Insights />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/clear-mind"
-        element={
-          <ProtectedRoute>
-            <ClearMind />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/clear-mind"
+          element={
+            <ProtectedRoute>
+              <ClearMind />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/comfort-zone"
-        element={
-          <ProtectedRoute>
-            <MyComfortZone />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/comfort-zone"
+          element={
+            <ProtectedRoute>
+              <MyComfortZone />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/safetynet"
-        element={
-          <ProtectedRoute>
-            <MyComfortZone />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/safetynet"
+          element={
+            <ProtectedRoute>
+              <MyComfortZone />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* 🌐 PUBLIC ROUTES */}
-      <Route path="/welcome" element={<Welcome />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
-    </Routes>
+        {/* 🌐 PUBLIC ROUTES */}
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+      </Routes>
+    </>
   );
 }
 

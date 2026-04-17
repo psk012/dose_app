@@ -89,7 +89,7 @@ function Home() {
             <div className="absolute -top-20 -right-20 w-64 h-64 md:w-96 md:h-96 bg-primary-container/10 rounded-full blur-3xl md:blur-[100px] pointer-events-none opacity-100 md:opacity-60"></div>
             <div className="absolute top-1/2 -left-32 w-80 h-80 md:w-96 md:h-96 bg-tertiary-container/10 rounded-full blur-3xl md:blur-[100px] pointer-events-none opacity-100 md:opacity-60"></div>
 
-            <div className="relative max-w-lg md:max-w-2xl mx-auto px-6 py-8 md:py-12">
+            <div className="relative max-w-lg md:max-w-2xl mx-auto px-6 py-8 md:py-12 animate-spring-up">
                 {/* Header */}
                 <header className="flex justify-between items-center mb-12">
                     <div className="flex items-center gap-2">

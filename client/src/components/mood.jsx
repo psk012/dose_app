@@ -82,9 +82,12 @@ function Mood({ onMoodSaved }) {
     ];
 
     const handleSubmit = async (moodName) => {
+        const prevMood = selectedMood;
         setMood(moodName);
-        setIsSaving(true);
-        setSaved(false);
+        setSaved(true);
+        setIsSaving(false);
+        if (onMoodSaved) onMoodSaved(moodName); // Optimistic UI trigger
+        
         try {
             await apiFetch(`${API_BASE}/insights/mood`, {
                 method: "POST",
@@ -94,12 +97,10 @@ function Mood({ onMoodSaved }) {
                 },
                 body: JSON.stringify({ state: moodName }),
             });
-            setSaved(true);
-            if (onMoodSaved) onMoodSaved(moodName);
         } catch (error) {
+            setMood(prevMood);
+            setSaved(false);
             console.error("Failed to log mood:", error);
-        } finally {
-            setIsSaving(false);
         }
     };
 

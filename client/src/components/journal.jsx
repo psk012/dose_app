@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { saveJournal, apiFetch, API_BASE } from "../api/api";
+import { SkeletonText } from "./skeleton";
 
 function Journal({ entry, setEntry, setEntries, entries, journalLoading, journalError }) {
     const [saving, setSaving] = useState(false);
@@ -63,9 +64,27 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
     const handleSave = async (isModal = false) => {
         const textToSave = isModal ? `Prompt: ${activePrompt}\n\n${modalEntry}` : entry;
         if (textToSave.trim() === "") return;
+        
+        const tempId = 'temp-' + Date.now();
+        const optimisticEntry = {
+            _id: tempId,
+            text: textToSave,
+            createdAt: new Date().toISOString(),
+            isOptimistic: true
+        };
+        
+        setEntries((prev) => [optimisticEntry, ...prev]);
         setSaving(true);
         setError("");
         setSuccess(false);
+
+        if (isModal) {
+            setModalEntry("");
+            setActivePrompt(null);
+        } else {
+            setEntry("");
+        }
+        setShowPrompts(false);
 
         try {
             const res = await apiFetch(`${API_BASE}/journal`, {
@@ -76,17 +95,14 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
             
-            setEntries((prev) => [data.entry, ...prev]);
-            if (isModal) {
-                setModalEntry("");
-                setActivePrompt(null);
-            } else {
-                setEntry("");
-            }
+            setEntries((prev) => prev.map(e => e._id === tempId ? data.entry : e));
             setSuccess(true);
-            setShowPrompts(false);
         } catch (err) {
-            setError(err.message);
+            setEntries((prev) => prev.filter(e => e._id !== tempId));
+            setError("Couldn't save right now. We'll try again.");
+            if (!isModal) {
+                setEntry(textToSave);
+            }
         } finally {
             setSaving(false);
         }
@@ -211,13 +227,18 @@ function Journal({ entry, setEntry, setEntries, entries, journalLoading, journal
 
                     <div className="space-y-4">
                         <p className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold">Past Entries</p>
-                        {journalLoading && <p className="text-sm text-on-surface-variant animate-pulse">Loading...</p>}
+                        {journalLoading && (
+                            <div className="space-y-4">
+                                <SkeletonText lines={3} className="bg-surface-container-lowest border border-outline-variant/30 p-5 rounded-2xl" />
+                                <SkeletonText lines={2} className="bg-surface-container-lowest border border-outline-variant/30 p-5 rounded-2xl" />
+                            </div>
+                        )}
                         {!journalLoading && entries.length === 0 && <p className="text-sm text-on-surface-variant border border-dashed border-outline-variant/50 rounded-xl p-6 text-center">Your journal is empty. What's on your mind?</p>}
                         
                         {entries.map((e) => (
-                            <div key={e._id} className="bg-surface-container-lowest border border-outline-variant/30 p-5 rounded-2xl group flex flex-col sm:flex-row gap-4 justify-between items-start">
+                            <div key={e._id} className={`bg-surface-container-lowest border border-outline-variant/30 p-5 rounded-2xl group flex flex-col sm:flex-row gap-4 justify-between items-start transition-opacity ${e.isOptimistic ? "opacity-60" : "opacity-100"}`}>
                                 <div className="text-on-surface text-sm leading-relaxed whitespace-pre-wrap font-handwriting">{e.text}</div>
-                                <button onClick={() => handleSoftDelete(e._id)} className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all shrink-0">
+                                <button onClick={() => !e.isOptimistic && handleSoftDelete(e._id)} className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all shrink-0" disabled={e.isOptimistic}>
                                     <span className="material-symbols-outlined">delete_forever</span>
                                 </button>
                             </div>

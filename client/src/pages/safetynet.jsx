@@ -15,6 +15,9 @@ import {
     verifyComfortZoneEmailOtp,
 } from "../api/api";
 
+import { SkeletonContact } from "../components/skeleton";
+import { startProgress, stopProgress } from "../components/progressBar";
+
 const emptyForm = {
     name: "",
     email: "",
@@ -57,10 +60,12 @@ function MyComfortZone() {
             setError(err.message);
         } finally {
             setLoading(false);
+            stopProgress();
         }
     }, [token]);
 
     useEffect(() => {
+        startProgress();
         loadData();
     }, [loadData]);
 
@@ -140,17 +145,49 @@ function MyComfortZone() {
     }
 
     async function saveContact() {
-        await run("save-contact", async () => {
+        const tempId = 'temp-' + Date.now();
+        const optimisticContact = {
+            id: tempId,
+            name: form.name,
+            email: form.email,
+            isEmailVerified: true,
+            isAccepted: false,
+            isOptimistic: true
+        };
+        
+        setConfig(prev => ({
+             ...prev,
+             trustedContacts: [...(prev?.trustedContacts || []), optimisticContact]
+        }));
+        
+        const previousForm = { ...form };
+        setForm(emptyForm);
+        setShowAdd(false);
+
+        setBusy("save-contact");
+        setError("");
+        startProgress();
+        
+        try {
             await addComfortZoneContact(token, {
-                name: form.name,
-                email: form.email,
-                emailVerificationToken: form.emailVerificationToken,
+                name: previousForm.name,
+                email: previousForm.email,
+                emailVerificationToken: previousForm.emailVerificationToken,
             });
-            setForm(emptyForm);
-            setShowAdd(false);
             await loadData();
             flash("Contact verified. Invitation sent for acceptance.");
-        });
+        } catch (err) {
+            setConfig(prev => ({
+                 ...prev,
+                 trustedContacts: prev?.trustedContacts.filter(c => c.id !== tempId)
+            }));
+            setForm(previousForm);
+            setShowAdd(true);
+            setError("Couldn't save contact right now. We'll try again.");
+        } finally {
+            setBusy("");
+            stopProgress();
+        }
     }
 
     async function removeContact(id) {
@@ -195,13 +232,6 @@ function MyComfortZone() {
     const contacts = config?.trustedContacts || [];
     const canSave = form.name.trim() && form.emailVerificationToken;
 
-    if (loading) {
-        return (
-            <div className="bg-surface min-h-screen vellum-texture flex items-center justify-center">
-                <p className="text-on-surface-variant font-headline italic">Loading My Comfort Zone...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-24">
@@ -256,7 +286,15 @@ function MyComfortZone() {
                         )}
                     </section>
 
-                    {config?.enabled && (
+                    {loading ? (
+                        <section className="bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 p-6">
+                            <h3 className="font-semibold text-on-surface mb-4">My Comfort Zone</h3>
+                            <div className="space-y-3">
+                                <SkeletonContact />
+                                <SkeletonContact />
+                            </div>
+                        </section>
+                    ) : config?.enabled && (
                         <section className="bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl border border-outline-variant/30 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-semibold text-on-surface">My Comfort Zone</h3>
@@ -265,7 +303,7 @@ function MyComfortZone() {
                             <div className="space-y-3">
                                 {contacts.length === 0 && !showAdd && <p className="text-sm text-on-surface-variant/60 text-center py-4">No contacts added yet.</p>}
                                 {contacts.map(contact => (
-                                    <div key={contact.id} className="p-4 bg-surface-container-low rounded-2xl">
+                                    <div key={contact.id} className={`p-4 bg-surface-container-low rounded-2xl transition-opacity ${contact.isOptimistic ? "opacity-60" : "opacity-100"}`}>
                                         <div className="flex gap-3">
                                             <div className="w-10 h-10 rounded-full bg-primary-container/30 text-primary flex items-center justify-center"><span className="material-symbols-outlined text-lg">person</span></div>
                                             <div className="flex-1 min-w-0">

@@ -3,6 +3,8 @@ import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/navbar";
 import Mood from "../components/mood";
 import { apiFetch, API_BASE } from "../api/api";
+import { SkeletonCard, SkeletonText } from "../components/skeleton";
+import { startProgress, stopProgress } from "../components/progressBar";
 
 function Insights() {
     const { token } = useAuth();
@@ -34,6 +36,7 @@ function Insights() {
 
 
     const fetchInsights = async () => {
+        startProgress();
         try {
             const res = await apiFetch(`${API_BASE}/insights/dashboard`, {
                 headers: { Authorization: token }
@@ -46,6 +49,7 @@ function Insights() {
             console.error("Failed to fetch insights", error);
         } finally {
             setLoading(false);
+            stopProgress();
         }
     };
 
@@ -218,8 +222,8 @@ function Insights() {
                         <div className="space-y-4">
                             {reflectionsLoading ? (
                                 <div className="space-y-3">
-                                    <div className="h-16 w-full bg-surface-container-high animate-pulse rounded-2xl"></div>
-                                    <div className="h-16 w-full bg-surface-container-high animate-pulse rounded-2xl"></div>
+                                    <SkeletonCard />
+                                    <SkeletonCard />
                                 </div>
                             ) : reflections.length > 0 ? (
                                 reflections.map((prompt, idx) => (
@@ -316,7 +320,7 @@ function Insights() {
                             </p>
                             {isHistoryLoading ? (
                                 <div className="space-y-3">
-                                    <div className="h-10 animate-pulse bg-surface-container rounded-xl"></div>
+                                    <SkeletonText lines={2} className="bg-surface-container rounded-xl p-4" />
                                 </div>
                             ) : historyItems.length > 0 ? (
                                 historyItems.map(item => (
