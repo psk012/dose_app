@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { sendOtp, verifyOtp, signupUser } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import manasBanner from "../assets/manas-banner.png";
+import ComfortZoneCard from "../components/ComfortZoneCard";
 
 function Signup() {
     const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password, 4: My Comfort Zone
@@ -229,20 +230,43 @@ function Signup() {
 
                     {/* STEP 4: My Comfort Zone */}
                     {step === 4 && (
-                        <div className="space-y-4 animate-fade-in">
-                            <div className="p-4 bg-primary-container/20 rounded-2xl border border-primary/10">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-primary-container/60 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-                                        <span className="material-symbols-outlined text-xl">shield_with_heart</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-on-surface text-sm leading-relaxed">
-                                            My Comfort Zone lets you add trusted people after secure email verification and consent. Nothing you write is shared.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
+                        <div className="space-y-4">
+                            <ComfortZoneCard
+                                step="01"
+                                icon="flight_land"
+                                title="A place to land"
+                                text="Some days are just hard. This is where you don't have to go through it alone."
+                                index={0}
+                            />
+                            <ComfortZoneCard
+                                step="02"
+                                icon="group"
+                                title="Pick your people"
+                                text="Add one or two people you feel safe with. A friend, a sibling, anyone who makes you feel okay."
+                                index={1}
+                            />
+                            <ComfortZoneCard
+                                step="03"
+                                icon="mark_email_unread"
+                                title="They get a simple message"
+                                text="If you seem to be having a rough time, the people you chose get a short message. Just so they know to reach out."
+                                subtext='"They may be going through a difficult emotional phase. Consider checking in."'
+                                index={2}
+                            />
+                            <ComfortZoneCard
+                                step="04"
+                                icon="lock"
+                                title="Your words stay yours"
+                                text="Nothing you write here is shared. Not your journal, not your feelings. Nothing. It all stays with you."
+                                index={3}
+                            />
+                            <ComfortZoneCard
+                                step="05"
+                                icon="volunteer_activism"
+                                title="You don't have to ask"
+                                text="Sometimes you just want someone to show up without having to explain everything. This helps make that happen."
+                                index={4}
+                            />
                         </div>
                     )}
                 </div>
