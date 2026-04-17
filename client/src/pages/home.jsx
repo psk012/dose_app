@@ -107,21 +107,21 @@ function Home() {
 
                 {/* Greeting */}
                 <div className="mb-14 text-center md:text-left">
-                    <h1 className="font-handwriting text-5xl md:text-6xl text-on-surface leading-tight mb-3">
+                    <h1 className="font-handwriting text-5xl md:text-6xl text-on-surface leading-[1.1] mb-2">
                         Hello, beautiful soul.
                     </h1>
-                    <p className="font-headline text-lg italic text-on-surface-variant/80">
+                    <p className="font-handwriting text-xl text-on-surface-variant/70 italic">
                         What does your mind need right now?
                     </p>
                 </div>
 
                 {/* Menu Options */}
                 <section aria-labelledby="support-options" className="space-y-5">
-                    <div className="text-center sm:text-left">
-                        <h2 id="support-options" className="text-2xl md:text-3xl font-bold text-on-surface leading-snug">
+                    <div className="text-center sm:text-left px-2">
+                        <h2 id="support-options" className="text-3xl md:text-4xl font-handwriting text-on-surface leading-tight">
                             Take a moment. What do you need right now?
                         </h2>
-                        <p className="mt-2 text-sm md:text-base text-gray-400 leading-relaxed">
+                        <p className="mt-1 font-handwriting text-lg text-on-surface-variant/60">
                             You don't have to do everything at once.
                         </p>
                     </div>
@@ -137,8 +137,8 @@ function Home() {
                                     <span className="material-symbols-outlined text-2xl">{card.icon}</span>
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-on-surface leading-tight">{card.title}</h3>
-                                    <p className="mt-2 text-sm text-gray-400 leading-relaxed">{card.caption}</p>
+                                    <h3 className="text-xl font-handwriting font-bold text-on-surface leading-tight">{card.title}</h3>
+                                    <p className="mt-1 text-sm text-on-surface-variant/60 leading-relaxed">{card.caption}</p>
                                 </div>
                             </button>
                         ))}

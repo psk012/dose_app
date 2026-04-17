@@ -7,7 +7,7 @@ function Navbar() {
     
     // Auto-open on home page, otherwise state-controlled
     const isHomePage = location.pathname === "/";
-    const showFullNavbar = isHomePage || isOpen;
+    const showFullNavbar = isOpen;
 
     const links = [
         { path: "/", label: "Home", icon: "home" },
