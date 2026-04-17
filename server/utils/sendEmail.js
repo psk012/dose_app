@@ -21,21 +21,23 @@ async function sendEmail(to, subject, html) {
 
     const start = Date.now();
     try {
-        // ALWAYS use onboarding@resend.dev in test mode
-        const fromEmail = "Manas <onboarding@resend.dev>";
+        const isProduction = process.env.NODE_ENV === "production";
+        const fromEmail = process.env.EMAIL_FROM || "Manas <onboarding@resend.dev>";
+        
+        // Only redirect emails if we are NOT in production AND a test email is provided
+        const testEmail = process.env.TEST_EMAIL_REDIRECT;
+        const recipient = (!isProduction && testEmail) ? testEmail : to;
 
-        // FORCE redirect all emails to your personal verified email in test mode
-        const testEmail = "pskedhar@gmail.com"; // Replace with your actual Resend account email!
-
-        console.log(`📧 Attempting to send email via Resend...`);
-        console.log(`   From: ${fromEmail}`);
-        console.log(`   To: ${testEmail} (Redirected from: ${to})`);
-        console.log("HTML preview:", html);
+        if (!isProduction) {
+            console.log(`📧 [Dev Mode] Sending email via Resend...`);
+            console.log(`   From: ${fromEmail}`);
+            console.log(`   To: ${recipient}${recipient !== to ? ` (Redirected from: ${to})` : ""}`);
+        }
 
         const resend = new Resend(process.env.RESEND_API_KEY);
         const { data, error } = await resend.emails.send({
             from: fromEmail,
-            to: testEmail,
+            to: recipient,
             subject: subject,
             html: html,
             text: textFallback,
