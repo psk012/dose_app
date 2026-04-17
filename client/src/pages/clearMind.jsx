@@ -19,7 +19,7 @@ function ClearMind() {
     };
 
     return (
-        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-24">
+        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-36">
             <div className="max-w-md mx-auto px-6 py-8 md:py-12 flex flex-col min-h-[calc(100vh-6rem)]">
                 <header className="mb-8 flex items-center justify-between">
                     <button 

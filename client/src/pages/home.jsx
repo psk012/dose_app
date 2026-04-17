@@ -56,7 +56,7 @@ function Home() {
     }, []);
 
     return (
-        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-24">
+        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-36">
             {/* Reset Prompt Modal */}
             {showResetPrompt && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-surface/80 backdrop-blur-md transition-opacity">

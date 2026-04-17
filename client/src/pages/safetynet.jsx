@@ -234,7 +234,7 @@ function MyComfortZone() {
 
 
     return (
-        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-24">
+        <div className="bg-surface min-h-screen vellum-texture relative overflow-hidden pb-36">
             <div className="absolute -top-20 -right-20 w-64 h-64 md:w-96 md:h-96 bg-primary-container/10 rounded-full blur-3xl md:blur-[100px] pointer-events-none"></div>
             <div className="relative max-w-lg md:max-w-2xl mx-auto px-6 py-8 md:py-12">
                 {showConsent && (
