@@ -12,6 +12,8 @@ import ClearMind from "./pages/clearMind";
 import Insights from "./pages/insights";
 import MyComfortZone from "./pages/safetynet";
 import VerifyEmail from "./pages/verifyEmail";
+import Onboarding from "./pages/onboarding";
+import SetupComplete from "./pages/setupComplete";
 import ProtectedRoute from "./components/protectedroute";
 import { useAuth } from "./context/AuthContext";
 import { fetchJournals } from "./api/api";
@@ -169,6 +171,24 @@ function App() {
           element={
             <ProtectedRoute>
               <MyComfortZone />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/setup-complete"
+          element={
+            <ProtectedRoute>
+              <SetupComplete />
             </ProtectedRoute>
           }
         />

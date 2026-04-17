@@ -129,6 +129,37 @@
 }
 
 /* ───────────────────────────────────────────
+   Onboarding & Success Screen Animations
+   ─────────────────────────────────────────── */
+
+@keyframes gentleEntry {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes illustrationBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
+}
+
+@keyframes ambientPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+
+.animate-gentle-entry {
+  animation: gentleEntry 0.3s ease-out both;
+}
+
+.animate-illustration-breathe {
+  animation: illustrationBreathe 6s ease-in-out infinite;
+}
+
+.animate-ambient-pulse {
+  animation: ambientPulse 8s ease-in-out infinite;
+}
+
+/* ───────────────────────────────────────────
    Base Styles
    ─────────────────────────────────────────── */
 

@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { sendOtp, verifyOtp, signupUser } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import manasBanner from "../assets/manas-banner.png";
-import ComfortZoneCard from "../components/ComfortZoneCard";
 
 function Signup() {
-    const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password, 4: My Comfort Zone
+    const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password
     
     // Form States
     const [email, setEmail] = useState("");
@@ -17,7 +16,7 @@ function Signup() {
 
     // UI States
     const [error, setError] = useState("");
-    const [loadingAction, setLoadingAction] = useState(""); // "" | "sendOtp" | "verifyOtp" | "signup" | "setupComfortZone"
+    const [loadingAction, setLoadingAction] = useState(""); // "" | "sendOtp" | "verifyOtp" | "signup"
     const [resendTimer, setResendTimer] = useState(30);
     const [canResend, setCanResend] = useState(false);
     const navigate = useNavigate();
@@ -83,20 +82,12 @@ function Signup() {
             const data = await signupUser(email, password, signupToken);
             // Store token — user is now authenticated
             login(data.token);
-            setStep(4); // Advance to My Comfort Zone onboarding
+            navigate("/onboarding");
         } catch (err) {
             setError(err.message);
         } finally {
             setLoadingAction("");
         }
-    };
-
-    const handleComfortZoneSetup = async () => {
-        navigate("/safetynet");
-    };
-
-    const handleSkipComfortZone = () => {
-        navigate("/");
     };
 
     const handleKeyDown = (e, callback) => {
@@ -115,7 +106,6 @@ function Signup() {
         1: "Create a space for your thoughts.",
         2: `Enter the secure code sent to ${email}`,
         3: "Secure your new account with a strong password.",
-        4: "One last thing — My Comfort Zone.",
     };
 
     return (
@@ -126,12 +116,7 @@ function Signup() {
             <div className="w-full max-w-sm space-y-8 z-10 relative">
                 <div className="text-center space-y-3">
                     <img src={manasBanner} alt="Manas" className="w-56 mx-auto mb-4 drop-shadow-sm" />
-                    {step <= 3 && (
-                        <h1 className="font-handwriting text-4xl text-primary">Start your journey</h1>
-                    )}
-                    {step === 4 && (
-                        <h1 className="font-handwriting text-4xl text-primary">My Comfort Zone</h1>
-                    )}
+                    <h1 className="font-handwriting text-4xl text-primary">Start your journey</h1>
                     <p className="font-headline italic text-on-surface-variant/80 text-sm">
                         {stepSubtext[step]}
                     </p>
@@ -228,47 +213,7 @@ function Signup() {
                         </div>
                     )}
 
-                    {/* STEP 4: My Comfort Zone */}
-                    {step === 4 && (
-                        <div className="space-y-4">
-                            <ComfortZoneCard
-                                step="01"
-                                icon="flight_land"
-                                title="A place to land"
-                                text="Some days are just hard. This is where you don't have to go through it alone."
-                                index={0}
-                            />
-                            <ComfortZoneCard
-                                step="02"
-                                icon="group"
-                                title="Pick your people"
-                                text="Add one or two people you feel safe with. A friend, a sibling, anyone who makes you feel okay."
-                                index={1}
-                            />
-                            <ComfortZoneCard
-                                step="03"
-                                icon="mark_email_unread"
-                                title="They get a simple message"
-                                text="If you seem to be having a rough time, the people you chose get a short message. Just so they know to reach out."
-                                subtext='"They may be going through a difficult emotional phase. Consider checking in."'
-                                index={2}
-                            />
-                            <ComfortZoneCard
-                                step="04"
-                                icon="lock"
-                                title="Your words stay yours"
-                                text="Nothing you write here is shared. Not your journal, not your feelings. Nothing. It all stays with you."
-                                index={3}
-                            />
-                            <ComfortZoneCard
-                                step="05"
-                                icon="volunteer_activism"
-                                title="You don't have to ask"
-                                text="Sometimes you just want someone to show up without having to explain everything. This helps make that happen."
-                                index={4}
-                            />
-                        </div>
-                    )}
+
                 </div>
 
                 {error && (
@@ -312,37 +257,15 @@ function Signup() {
                     </button>
                 )}
 
-                {step === 4 && (
-                    <div className="space-y-3">
-                        <button
-                            onClick={handleComfortZoneSetup}
-                            disabled={loadingAction === "setupComfortZone"}
-                            className="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-bold text-base hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                            {loadingAction === "setupComfortZone" ? "Setting up..." : "Complete Setup"}
-                            {loadingAction !== "setupComfortZone" && <span className="material-symbols-outlined">shield_with_heart</span>}
-                        </button>
-                        <button
-                            onClick={handleSkipComfortZone}
-                            disabled={loadingAction !== ""}
-                            className="w-full py-3 text-on-surface-variant/70 text-sm font-medium hover:text-on-surface-variant transition-colors cursor-pointer"
-                        >
-                            Skip for now — I'll set this up later
-                        </button>
-                    </div>
-                )}
-
-                {step <= 3 && (
-                    <p className="text-center text-sm text-on-surface-variant/70">
-                        Already have an account?{" "}
-                        <span
-                            className="text-primary font-semibold cursor-pointer hover:underline"
-                            onClick={() => navigate("/login")}
-                        >
-                            Sign in
-                        </span>
-                    </p>
-                )}
+                <p className="text-center text-sm text-on-surface-variant/70">
+                    Already have an account?{" "}
+                    <span
+                        className="text-primary font-semibold cursor-pointer hover:underline"
+                        onClick={() => navigate("/login")}
+                    >
+                        Sign in
+                    </span>
+                </p>
             </div>
         </div>
     );
